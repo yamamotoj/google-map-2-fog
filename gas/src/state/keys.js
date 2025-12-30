@@ -19,6 +19,8 @@ const SCRIPT_PROPERTY_KEYS = Object.freeze({
   ENABLE_ROUTE_ENRICHMENT: 'ENABLE_ROUTE_ENRICHMENT', // '1' to enable
   ROUTE_TRAVEL_MODE: 'ROUTE_TRAVEL_MODE', // driving|walking|bicycling|transit
   ROUTE_MIN_DISTANCE_METERS: 'ROUTE_MIN_DISTANCE_METERS', // default 200
+  ENABLE_ROUTE_MODE_AUTO: 'ENABLE_ROUTE_MODE_AUTO', // '1' to enable
+  ROUTE_MODE_AUTO_FALLBACK: 'ROUTE_MODE_AUTO_FALLBACK', // driving|walking|bicycling|transit (default driving)
 
   LOG_SHEET_ID: 'LOG_SHEET_ID',
   START_DATE: 'START_DATE',

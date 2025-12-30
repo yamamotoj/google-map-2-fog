@@ -11,6 +11,33 @@ function haversineMeters(a, b) {
   return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
+function inferTravelMode({ origin, destination, fallbackMode = 'driving', allowTransit = false }) {
+  const fallback = String(fallbackMode || 'driving').toLowerCase();
+  const t1 = origin?.time ? Date.parse(origin.time) : NaN;
+  const t2 = destination?.time ? Date.parse(destination.time) : NaN;
+  const dist = haversineMeters(origin, destination);
+  const dtSec = Number.isFinite(t1) && Number.isFinite(t2) ? Math.max(0, (t2 - t1) / 1000) : NaN;
+
+  // If we can't compute speed, fall back.
+  if (!Number.isFinite(dist) || dist <= 0) return fallback;
+  if (!Number.isFinite(dtSec) || dtSec <= 0) return fallback;
+
+  const speed = dist / dtSec; // m/s
+
+  // Heuristic thresholds:
+  // - walking: < ~2.2 m/s (8 km/h)
+  // - bicycling: < ~7.0 m/s (25 km/h)
+  // - transit: ~8.3..25 m/s (30..90 km/h) AND distance >= 5km AND duration >= 10min
+  // - driving: otherwise
+  // NOTE: transit is optional because it can be inaccurate without additional constraints.
+  if (speed < 2.2) return 'walking';
+  if (speed < 7.0) return 'bicycling';
+  if (allowTransit) {
+    if (dist >= 5000 && dtSec >= 600 && speed >= 8.3 && speed <= 25.0) return 'transit';
+  }
+  return 'driving';
+}
+
 function _resolveDecodePolyline() {
   if (typeof decodePolyline !== 'undefined') return decodePolyline;
   if (typeof require !== 'undefined') return require('./polyline').decodePolyline;
@@ -66,7 +93,10 @@ function enrichPointsWithRoutes({ points, config, jobState, logger }) {
   if (pts.length <= 1) return { points: pts, stats };
 
   const minDist = Math.max(0, Number(config.routeMinDistanceMeters) || 0);
-  const mode = String(config.routeTravelMode || 'driving').toLowerCase();
+  const configuredMode = String(config.routeTravelMode || 'driving').toLowerCase();
+  const autoMode = Boolean(config.enableRouteModeAuto);
+  const autoFallback = String(config.routeModeAutoFallback || configuredMode || 'driving').toLowerCase();
+  const autoTransit = autoMode; // auto有効ならtransitも候補に含める（ヒューリスティックで過剰選択は抑える）
   const decode = _resolveDecodePolyline();
   const fetchRoute = _resolveFetchDirectionsRoute();
   const cache = _resolveRouteCache();
@@ -105,7 +135,11 @@ function enrichPointsWithRoutes({ points, config, jobState, logger }) {
       continue;
     }
 
-    const key = cache.build({ mode, origin: a, destination: b });
+    const modeForPair = autoMode
+      ? inferTravelMode({ origin: a, destination: b, fallbackMode: autoFallback, allowTransit: autoTransit })
+      : configuredMode;
+
+    const key = cache.build({ mode: modeForPair, origin: a, destination: b });
     const cached = getCached(key);
     let route;
     if (cached) {
@@ -115,7 +149,15 @@ function enrichPointsWithRoutes({ points, config, jobState, logger }) {
       try {
         stats.requested++;
         consume(jobState, 1);
-        route = fetchRoute({ apiKey: config.mapsApiKey, origin: a, destination: b, mode });
+        const departureTimeEpochSeconds =
+          modeForPair === 'transit' && a?.time ? Math.floor(Date.parse(a.time) / 1000) : null;
+        route = fetchRoute({
+          apiKey: config.mapsApiKey,
+          origin: a,
+          destination: b,
+          mode: modeForPair,
+          departureTimeEpochSeconds
+        });
         // cache only successful responses
         setCached(key, route);
       } catch (e) {
@@ -123,6 +165,7 @@ function enrichPointsWithRoutes({ points, config, jobState, logger }) {
         logger?.warn?.('route request failed; fallback to points only', {
           origin: { lat: a.lat, lng: a.lng },
           destination: { lat: b.lat, lng: b.lng },
+          mode: modeForPair,
           error: String(e?.message || e),
           code: e?.code || null
         });
@@ -154,7 +197,7 @@ function enrichPointsWithRoutes({ points, config, jobState, logger }) {
 globalThis.enrichPointsWithRoutes = enrichPointsWithRoutes;
 
 if (typeof module !== 'undefined') {
-  module.exports = { enrichPointsWithRoutes, haversineMeters };
+  module.exports = { enrichPointsWithRoutes, haversineMeters, inferTravelMode };
 }
 
 

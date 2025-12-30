@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 
 const { decodePolyline } = require('../../gas/src/routes/polyline');
 const { buildRouteCacheKey } = require('../../gas/src/routes/cache');
-const { enrichPointsWithRoutes } = require('../../gas/src/routes/enrich');
+const { enrichPointsWithRoutes, inferTravelMode } = require('../../gas/src/routes/enrich');
 
 test('decodePolyline: 既知のpolylineをデコードできる', () => {
   // Example from Google polyline algorithm docs
@@ -69,6 +69,43 @@ test('enrichPointsWithRoutes: 予算があれば中間点を挿入できる（HT
   // original 2 points + 1 middle point (from decoded polyline)
   assert.equal(res.points.length, 3);
   assert.equal(jobState.budget.routeRequestsUsedToday, 1);
+});
+
+test('inferTravelMode: 速度に応じてwalking/bicycling/drivingを推定できる', () => {
+  // ~111m in 60s => 1.85m/s => walking
+  const walking = inferTravelMode({
+    origin: { lat: 0, lng: 0, time: '2010-01-01T00:00:00.000Z' },
+    destination: { lat: 0.001, lng: 0, time: '2010-01-01T00:01:00.000Z' },
+    fallbackMode: 'driving'
+  });
+  assert.equal(walking, 'walking');
+
+  // ~1110m in 300s => 3.7m/s => bicycling
+  const biking = inferTravelMode({
+    origin: { lat: 0, lng: 0, time: '2010-01-01T00:00:00.000Z' },
+    destination: { lat: 0.01, lng: 0, time: '2010-01-01T00:05:00.000Z' },
+    fallbackMode: 'driving'
+  });
+  assert.equal(biking, 'bicycling');
+
+  // ~11.1km in 600s => 18.5m/s => driving
+  const driving = inferTravelMode({
+    origin: { lat: 0, lng: 0, time: '2010-01-01T00:00:00.000Z' },
+    destination: { lat: 0.1, lng: 0, time: '2010-01-01T00:10:00.000Z' },
+    fallbackMode: 'walking'
+  });
+  assert.equal(driving, 'driving');
+});
+
+test('inferTravelMode: 条件を満たすとtransitを推定できる（オプション有効時）', () => {
+  // ~11.1km in 20min => ~9.25 m/s => transit候補帯
+  const transit = inferTravelMode({
+    origin: { lat: 0, lng: 0, time: '2010-01-01T00:00:00.000Z' },
+    destination: { lat: 0.1, lng: 0, time: '2010-01-01T00:20:00.000Z' },
+    fallbackMode: 'driving',
+    allowTransit: true
+  });
+  assert.equal(transit, 'transit');
 });
 
 

@@ -10,7 +10,8 @@ function fetchDirectionsRoute({
   apiKey,
   origin,
   destination,
-  mode = 'driving'
+  mode = 'driving',
+  departureTimeEpochSeconds = null
 }) {
   _assertUrlFetch();
 
@@ -30,6 +31,9 @@ function fetchDirectionsRoute({
     `?origin=${encodeURIComponent(o)}` +
     `&destination=${encodeURIComponent(d)}` +
     `&mode=${encodeURIComponent(m)}` +
+    (m === 'transit' && departureTimeEpochSeconds
+      ? `&departure_time=${encodeURIComponent(String(departureTimeEpochSeconds))}`
+      : '') +
     `&key=${encodeURIComponent(key)}`;
 
   const res = UrlFetchApp.fetch(url, {

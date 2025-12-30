@@ -62,6 +62,8 @@ function loadConfig() {
   const enableRouteEnrichment = (store.getProperty(keys.ENABLE_ROUTE_ENRICHMENT) || '').trim() === '1';
   const routeTravelMode = (store.getProperty(keys.ROUTE_TRAVEL_MODE) || '').trim() || 'driving';
   const routeMinDistanceMeters = parsePositiveInt(store.getProperty(keys.ROUTE_MIN_DISTANCE_METERS), 200);
+  const enableRouteModeAuto = (store.getProperty(keys.ENABLE_ROUTE_MODE_AUTO) || '').trim() === '1';
+  const routeModeAutoFallback = (store.getProperty(keys.ROUTE_MODE_AUTO_FALLBACK) || '').trim() || 'driving';
 
   const logSheetId = (store.getProperty(keys.LOG_SHEET_ID) || '').trim() || null;
   const startDate = (store.getProperty(keys.START_DATE) || '').trim() || null;
@@ -76,6 +78,8 @@ function loadConfig() {
     enableRouteEnrichment,
     routeTravelMode,
     routeMinDistanceMeters,
+    enableRouteModeAuto,
+    routeModeAutoFallback,
     logSheetId,
     startDate,
     endDate
