@@ -6,7 +6,10 @@ function millisNow() {
   return Date.now();
 }
 
-function computeStopAt({ maxMillis = 5 * 60 * 1000, safetyMillis = 20 * 1000 } = {}) {
+// NOTE:
+// Apps Script execution limits vary by account type. This project targets up to ~20 min runs.
+// We keep a safety margin to ensure state is saved before hard timeout.
+function computeStopAt({ maxMillis = 20 * 60 * 1000, safetyMillis = 60 * 1000 } = {}) {
   return millisNow() + Math.max(0, maxMillis - safetyMillis);
 }
 
