@@ -1,4 +1,8 @@
-const { formatJstDate } = require('./budget');
+function _resolveFormatJstDate() {
+  if (typeof formatJstDate !== 'undefined') return formatJstDate;
+  if (typeof require !== 'undefined') return require('./budget').formatJstDate;
+  throw new Error('formatJstDate is not available');
+}
 
 function parseJstYyyyMmDd(dateStr) {
   // Interpret as JST midnight
@@ -13,7 +17,7 @@ function addDaysJst(dateStr, days) {
     throw err;
   }
   d.setDate(d.getDate() + days);
-  return formatJstDate(d);
+  return _resolveFormatJstDate()(d);
 }
 
 function ensureCursorInitialized(jobState, { startDate } = {}) {

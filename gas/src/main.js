@@ -1,13 +1,6 @@
-const { loadConfig } = require('./state/config');
-const { createRunLogger } = require('./state/runLog');
-const { loadOrInitJobState, saveJobState } = require('./state/jobState');
-const { ensureBudgetReset, setMaxRouteRequestsPerDay } = require('./state/budget');
-const { parseDriveJsonFile } = require('./takeout/parser');
-const { normalizeFromTakeoutJson } = require('./takeout/normalize');
-const { filterPointsByJstDate } = require('./takeout/partition');
-const { exportDailyGpxToDrive } = require('./gpx/exportToDrive');
-const { addDaysJst, ensureCursorInitialized, shouldStopAtEndDate } = require('./state/cursor');
-const { createDailyTrigger, deleteTriggersForHandler } = require('./state/triggers');
+// NOTE:
+// This file is meant to run in Apps Script. Do not use require() here.
+// All referenced functions are provided by other pushed .gs files in the same project.
 
 function millisNow() {
   return Date.now();

@@ -1,4 +1,9 @@
-const { SCRIPT_PROPERTY_KEYS } = require('./keys');
+// Avoid evaluating require() at load time (Apps Script has no require and file order is not guaranteed).
+function _getScriptPropertyKeys() {
+  if (typeof SCRIPT_PROPERTY_KEYS !== 'undefined') return SCRIPT_PROPERTY_KEYS;
+  if (typeof require !== 'undefined') return require('./keys').SCRIPT_PROPERTY_KEYS;
+  throw new Error('SCRIPT_PROPERTY_KEYS is not available');
+}
 
 function getPropertyStore() {
   // Apps Script environment
@@ -32,27 +37,30 @@ function parsePositiveInt(value, fallback) {
 
 function loadConfig() {
   const store = getPropertyStore();
+  const keys = _getScriptPropertyKeys();
 
-  const locationHistoryFileId = (store.getProperty(SCRIPT_PROPERTY_KEYS.LOCATION_HISTORY_FILE_ID) || '').trim() || null;
+  const locationHistoryFileId =
+    (store.getProperty(keys.LOCATION_HISTORY_FILE_ID) || '').trim() || null;
 
   // Backward-compat: if no file-id is provided, allow folder scan mode.
-  const takeoutFolderIdRaw = (store.getProperty(SCRIPT_PROPERTY_KEYS.TAKEOUT_FOLDER_ID) || '').trim() || null;
+  const takeoutFolderIdRaw =
+    (store.getProperty(keys.TAKEOUT_FOLDER_ID) || '').trim() || null;
   const takeoutFolderId = locationHistoryFileId
     ? null
-    : requireNonEmpty(takeoutFolderIdRaw, `Missing Script Property: ${SCRIPT_PROPERTY_KEYS.TAKEOUT_FOLDER_ID}`);
+    : requireNonEmpty(takeoutFolderIdRaw, `Missing Script Property: ${keys.TAKEOUT_FOLDER_ID}`);
   const outputFolderId = requireNonEmpty(
-    store.getProperty(SCRIPT_PROPERTY_KEYS.OUTPUT_FOLDER_ID),
-    `Missing Script Property: ${SCRIPT_PROPERTY_KEYS.OUTPUT_FOLDER_ID}`
+    store.getProperty(keys.OUTPUT_FOLDER_ID),
+    `Missing Script Property: ${keys.OUTPUT_FOLDER_ID}`
   );
 
   const maxRouteRequestsPerDay = parsePositiveInt(
-    store.getProperty(SCRIPT_PROPERTY_KEYS.MAX_ROUTE_REQUESTS_PER_DAY),
+    store.getProperty(keys.MAX_ROUTE_REQUESTS_PER_DAY),
     0
   );
 
-  const logSheetId = (store.getProperty(SCRIPT_PROPERTY_KEYS.LOG_SHEET_ID) || '').trim() || null;
-  const startDate = (store.getProperty(SCRIPT_PROPERTY_KEYS.START_DATE) || '').trim() || null;
-  const endDate = (store.getProperty(SCRIPT_PROPERTY_KEYS.END_DATE) || '').trim() || null;
+  const logSheetId = (store.getProperty(keys.LOG_SHEET_ID) || '').trim() || null;
+  const startDate = (store.getProperty(keys.START_DATE) || '').trim() || null;
+  const endDate = (store.getProperty(keys.END_DATE) || '').trim() || null;
 
   return {
     locationHistoryFileId,

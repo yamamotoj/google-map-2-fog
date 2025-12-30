@@ -1,5 +1,14 @@
-const { SCRIPT_PROPERTY_KEYS } = require('./keys');
-const { getPropertyStore } = require('./config');
+function _resolveScriptPropertyKeys() {
+  if (typeof SCRIPT_PROPERTY_KEYS !== 'undefined') return SCRIPT_PROPERTY_KEYS;
+  if (typeof require !== 'undefined') return require('./keys').SCRIPT_PROPERTY_KEYS;
+  throw new Error('SCRIPT_PROPERTY_KEYS is not available');
+}
+
+function _resolveGetPropertyStore() {
+  if (typeof getPropertyStore !== 'undefined') return getPropertyStore;
+  if (typeof require !== 'undefined') return require('./config').getPropertyStore;
+  throw new Error('getPropertyStore is not available');
+}
 
 const JOB_STATE_VERSION = 1;
 
@@ -22,8 +31,9 @@ function defaultJobState({ startDate } = {}) {
 }
 
 function loadJobState() {
-  const store = getPropertyStore();
-  const raw = store.getProperty(SCRIPT_PROPERTY_KEYS.JOB_STATE);
+  const store = _resolveGetPropertyStore()();
+  const keys = _resolveScriptPropertyKeys();
+  const raw = store.getProperty(keys.JOB_STATE);
   if (!raw) return null;
   try {
     return JSON.parse(raw);
@@ -35,8 +45,9 @@ function loadJobState() {
 }
 
 function saveJobState(state) {
-  const store = getPropertyStore();
-  store.setProperty(SCRIPT_PROPERTY_KEYS.JOB_STATE, JSON.stringify(state));
+  const store = _resolveGetPropertyStore()();
+  const keys = _resolveScriptPropertyKeys();
+  store.setProperty(keys.JOB_STATE, JSON.stringify(state));
 }
 
 function loadOrInitJobState({ startDate } = {}) {

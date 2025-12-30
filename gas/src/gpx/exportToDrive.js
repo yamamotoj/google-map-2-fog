@@ -1,4 +1,11 @@
-const { buildGpxTrack } = require('./builder');
+// Apps Script runtime loads all .gs files into the same global scope.
+// Avoid redeclaring identifiers that may already exist globally (e.g. buildGpxTrack).
+// Also avoid evaluating require() at load time (Apps Script has no require and file order is not guaranteed).
+function _resolveBuildGpxTrack() {
+  if (typeof buildGpxTrack !== 'undefined') return buildGpxTrack;
+  if (typeof require !== 'undefined') return require('./builder').buildGpxTrack;
+  throw new Error('buildGpxTrack is not available');
+}
 
 function getFolderById(folderId) {
   if (typeof DriveApp === 'undefined') {
@@ -23,7 +30,7 @@ function exportDailyGpxToDrive({ outputFolderId, date, points }) {
     return { skipped: true, fileName };
   }
 
-  const xml = buildGpxTrack({ name: fileName.replace('.gpx', ''), points });
+  const xml = _resolveBuildGpxTrack()({ name: fileName.replace('.gpx', ''), points });
   const file = folder.createFile(fileName, xml, MimeType.PLAIN_TEXT);
   return { skipped: false, fileId: file.getId(), fileName };
 }
