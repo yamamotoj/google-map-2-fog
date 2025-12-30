@@ -20,6 +20,10 @@ pnpm-debug.log*
 .clasp.json
 gas/.clasp.json
 
+# Personal location history exports (DO NOT COMMIT)
+location-history.json
+tools/fixtures/location-history.json
+
 # Misc
 *.tmp
 *.swp

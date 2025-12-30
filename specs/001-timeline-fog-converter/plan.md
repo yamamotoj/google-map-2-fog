@@ -7,7 +7,7 @@
 
 ## Summary
 
-Google Takeout の位置履歴（タイムライン）エクスポート（JSON）を、Fog of World が読み込める GPX に
+iPhone（Google マップアプリ）からエクスポートしたタイムラインJSONを、Fog of World が読み込める GPX に
 変換する。タイムラインの点列を正規化し、必要に応じて Google Maps の経路検索で点間を補完した上で、
 日次スケジュールで少しずつ処理していく。
 
@@ -31,7 +31,7 @@ Google Takeout の位置履歴（タイムライン）エクスポート（JSON�
 **Project Type**: single（GASプロジェクト）  
 **Performance Goals**: 1回の実行で「上限内（時間/予算）」の範囲で確実に進捗を進める（途中で止まっても次回再開できる）  
 **Constraints**: GASの実行時間制限（目安: 1回あたり数分）、外部APIのクオータ/課金、URLFetchのレート制限、巨大JSONを一括でメモリ展開しない  
-**Scale/Scope**: 20年以上の位置履歴（大量の地点/移動を想定）。日/週単位で分割処理し、出力も分割して管理する
+**Scale/Scope**: 20年以上の位置履歴（大量の地点/移動を想定）。日単位で分割処理し、出力も分割して管理する
 
 ## Constitution Check
 
@@ -77,7 +77,7 @@ gas/                       # Apps Script project (clasp-managed)
 ├── appsscript.json
 └── src/
     ├── main.ts            # entrypoint (trigger / manual run)
-    ├── takeout/           # Takeout JSON parsing + normalization
+    ├── takeout/           # Timeline export JSON parsing + normalization（命名は互換のため維持）
     ├── routes/            # route enrichment + caching/budget
     ├── gpx/               # GPX building + file naming
     └── state/             # JobState persistence (Properties)

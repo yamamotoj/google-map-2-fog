@@ -1,18 +1,19 @@
-# Contract: Input (Google Takeout Location History JSON)
+# Contract: Input (iPhone Timeline Export JSON)
 
 **Branch**: `001-timeline-fog-converter`  
 **Date**: 2025-12-30
 
 ## Scope
 
-この契約は、Google Takeout でエクスポートした位置履歴（タイムライン）データを Drive 上で読み込む際の
-前提を定める。Takeoutの実際のフォルダ構造は変動し得るため、実装では「検出 + アダプタ」で吸収する。
+この契約は、iPhone（Google マップアプリ）の「タイムライン データをエクスポート」で出力したJSONを
+Drive 上で読み込む際の前提を定める。エクスポート結果のファイル構成は変動し得るため、実装では
+「検出 + アダプタ」で吸収する。
 
 ## Accepted Inputs
 
-- **Input container**: Drive 上のフォルダ（利用者がTakeout ZIPを解凍して配置）
+- **Input container**: Drive 上の単一ファイル `location-history.json`
 - **File type**: JSON（テキスト）
-- **Segmentation**: 多数ファイルでも良い（ファイルを順次処理する）
+- **Segmentation**: 単一ファイル（このプロジェクトの前提）
 
 ## Minimum Required Fields (normalized)
 

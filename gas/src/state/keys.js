@@ -6,7 +6,12 @@
  */
 
 const SCRIPT_PROPERTY_KEYS = Object.freeze({
+  // Input (preferred): Drive file ID for location-history.json (iPhone timeline export)
+  LOCATION_HISTORY_FILE_ID: 'LOCATION_HISTORY_FILE_ID',
+
+  // Backward-compat (deprecated): folder recursive scan (old approach)
   TAKEOUT_FOLDER_ID: 'TAKEOUT_FOLDER_ID',
+
   OUTPUT_FOLDER_ID: 'OUTPUT_FOLDER_ID',
   MAX_ROUTE_REQUESTS_PER_DAY: 'MAX_ROUTE_REQUESTS_PER_DAY',
   LOG_SHEET_ID: 'LOG_SHEET_ID',

@@ -2,7 +2,6 @@ const { loadConfig } = require('./state/config');
 const { createRunLogger } = require('./state/runLog');
 const { loadOrInitJobState, saveJobState } = require('./state/jobState');
 const { ensureBudgetReset, setMaxRouteRequestsPerDay } = require('./state/budget');
-const { listJsonFilesRecursive } = require('./takeout/discovery');
 const { parseDriveJsonFile } = require('./takeout/parser');
 const { normalizeFromTakeoutJson } = require('./takeout/normalize');
 const { filterPointsByJstDate } = require('./takeout/partition');
@@ -26,26 +25,21 @@ function processOneDay({ config, logger, run, jobState, stopAtMillis }) {
   const targetDate = jobState.cursor.nextDateToProcess;
   logger.info('processing date', { date: targetDate });
 
-  const files = listJsonFilesRecursive(config.takeoutFolderId);
-  logger.info('discovered takeout files', { count: files.length });
-
-  const dayPoints = [];
-  for (const f of files) {
-    if (isTimeUp(stopAtMillis)) {
-      logger.warn('time budget reached; stopping early', { date: targetDate });
-      return { completed: false };
-    }
-
-    try {
-      const json = parseDriveJsonFile(f);
-      const pts = normalizeFromTakeoutJson(json);
-      const filtered = filterPointsByJstDate(pts, targetDate);
-      if (filtered.length) dayPoints.push(...filtered);
-    } catch (e) {
-      run.errors.push({ kind: e.code || 'TAKEOUT_ERROR', message: String(e.message || e), context: { fileName: f.getName?.() } });
-      logger.warn('skipped takeout file', { fileName: f.getName?.(), error: String(e.message || e) });
-    }
+  if (isTimeUp(stopAtMillis)) {
+    logger.warn('time budget reached; stopping early', { date: targetDate });
+    return { completed: false };
   }
+
+  if (!config.locationHistoryFileId) {
+    const err = new Error('Missing Script Property: LOCATION_HISTORY_FILE_ID (Drive file id for location-history.json)');
+    err.code = 'CONFIG_MISSING';
+    throw err;
+  }
+
+  const file = DriveApp.getFileById(config.locationHistoryFileId);
+  const json = parseDriveJsonFile(file);
+  const pts = normalizeFromTakeoutJson(json);
+  const dayPoints = filterPointsByJstDate(pts, targetDate);
 
   run.processedDates.push(targetDate);
 

@@ -100,16 +100,63 @@ function dedupeByLatLngTime(points) {
   return out;
 }
 
+function parseGeo(s) {
+  if (!s || typeof s !== 'string') return null;
+  const m = s.match(/^geo:([\-0-9.]+),([\-0-9.]+)$/);
+  if (!m) return null;
+  const lat = Number(m[1]);
+  const lng = Number(m[2]);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  return { lat, lng };
+}
+
+function normalizeFromIphoneTimelineExport(records) {
+  // Top-level array of objects with {startTime,endTime,activity?,visit?}
+  const points = [];
+  for (const r of records || []) {
+    const startTime = r?.startTime ? new Date(r.startTime).toISOString() : null;
+    const endTime = r?.endTime ? new Date(r.endTime).toISOString() : null;
+
+    if (r?.visit?.topCandidate?.placeLocation) {
+      const g = parseGeo(r.visit.topCandidate.placeLocation);
+      if (g && startTime) {
+        const p = normalizePoint({ lat: g.lat, lng: g.lng, time: startTime });
+        if (p) points.push(p);
+      }
+      continue;
+    }
+
+    if (r?.activity?.start || r?.activity?.end) {
+      const s = parseGeo(r.activity.start);
+      const e = parseGeo(r.activity.end);
+      if (s && startTime) {
+        const p = normalizePoint({ lat: s.lat, lng: s.lng, time: startTime });
+        if (p) points.push(p);
+      }
+      if (e && endTime) {
+        const p = normalizePoint({ lat: e.lat, lng: e.lng, time: endTime });
+        if (p) points.push(p);
+      }
+    }
+  }
+  return points;
+}
+
 /**
- * Normalize a Takeout JSON (either "locations" or "timelineObjects").
+ * Normalize an export JSON into TimelinePoint[].
+ * Supported formats:
+ * - Takeout-style objects with "locations" or "timelineObjects"
+ * - iPhone timeline export (top-level array with {startTime,endTime,activity?,visit?})
  * Returns TimelinePoint[] sorted by time ascending.
  */
 function normalizeFromTakeoutJson(json) {
-  const rawPoints = Array.isArray(json?.locations)
-    ? normalizeFromLocationsArray(json.locations)
-    : Array.isArray(json?.timelineObjects)
-      ? normalizeFromSemanticTimelineObjects(json.timelineObjects)
-      : [];
+  const rawPoints = Array.isArray(json)
+    ? normalizeFromIphoneTimelineExport(json)
+    : Array.isArray(json?.locations)
+      ? normalizeFromLocationsArray(json.locations)
+      : Array.isArray(json?.timelineObjects)
+        ? normalizeFromSemanticTimelineObjects(json.timelineObjects)
+        : [];
 
   const deduped = dedupeByLatLngTime(rawPoints);
   deduped.sort((a, b) => (a.time < b.time ? -1 : a.time > b.time ? 1 : 0));

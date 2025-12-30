@@ -33,10 +33,13 @@ function parsePositiveInt(value, fallback) {
 function loadConfig() {
   const store = getPropertyStore();
 
-  const takeoutFolderId = requireNonEmpty(
-    store.getProperty(SCRIPT_PROPERTY_KEYS.TAKEOUT_FOLDER_ID),
-    `Missing Script Property: ${SCRIPT_PROPERTY_KEYS.TAKEOUT_FOLDER_ID}`
-  );
+  const locationHistoryFileId = (store.getProperty(SCRIPT_PROPERTY_KEYS.LOCATION_HISTORY_FILE_ID) || '').trim() || null;
+
+  // Backward-compat: if no file-id is provided, allow folder scan mode.
+  const takeoutFolderIdRaw = (store.getProperty(SCRIPT_PROPERTY_KEYS.TAKEOUT_FOLDER_ID) || '').trim() || null;
+  const takeoutFolderId = locationHistoryFileId
+    ? null
+    : requireNonEmpty(takeoutFolderIdRaw, `Missing Script Property: ${SCRIPT_PROPERTY_KEYS.TAKEOUT_FOLDER_ID}`);
   const outputFolderId = requireNonEmpty(
     store.getProperty(SCRIPT_PROPERTY_KEYS.OUTPUT_FOLDER_ID),
     `Missing Script Property: ${SCRIPT_PROPERTY_KEYS.OUTPUT_FOLDER_ID}`
@@ -52,6 +55,7 @@ function loadConfig() {
   const endDate = (store.getProperty(SCRIPT_PROPERTY_KEYS.END_DATE) || '').trim() || null;
 
   return {
+    locationHistoryFileId,
     takeoutFolderId,
     outputFolderId,
     maxRouteRequestsPerDay,

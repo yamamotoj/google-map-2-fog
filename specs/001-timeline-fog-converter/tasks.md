@@ -34,7 +34,7 @@ description: "Task list for implementing the converter (GAS) and long-running sc
 - [x] T001 [P] [US1] `gas/` ディレクトリを作成し、`appsscript.json` と `gas/src/` 骨格を用意する（検証: リポジトリに構造が追加されている）
 - [x] T002 [P] [US1] clasp の導入方針を決める（README相当が無いので `specs/001-timeline-fog-converter/quickstart.md` に手順追記でも可）（検証: ローカル→GASへpushできる前提が明文化）
 - [x] T003 [P] [US1] `gas/src/state/` に Script Properties キー一覧（定数）を定義する（検証: 参照すべきキーがコードで一元管理される）
-- [x] T004 [P] [US1] `tools/fixtures/` に小さなTakeoutサンプル（匿名化）を置くか、置けない場合は生成手順を `quickstart.md` に追記する（検証: US1の検証用入力が再現可能）
+- [x] T004 [P] [US1] `tools/fixtures/` に小さなタイムラインエクスポートサンプル（匿名化）を置くか、置けない場合は生成手順を `quickstart.md` に追記する（検証: US1の検証用入力が再現可能）
 
 ---
 
@@ -56,7 +56,7 @@ description: "Task list for implementing the converter (GAS) and long-running sc
 
 ## Phase 3: User Story 1 - タイムラインをGPXに変換してDriveに出力 (Priority: P1) 🎯 MVP
 
-**Goal**: Takeout JSON（小さい期間）を読み、正規化した点列を GPX にして Drive 出力する
+**Goal**: iPhoneのタイムラインエクスポートJSON（小さい期間）を読み、正規化した点列を GPX にして Drive 出力する
 
 **Independent Test**: `tools/fixtures/` のサンプル入力を使い、`timeline-YYYY-MM-DD.gpx` が Drive に生成され、Fog of World に取り込める
 
