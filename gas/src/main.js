@@ -39,7 +39,7 @@ function processOneDay({ config, logger, run, jobState, stopAtMillis, getDayPoin
 
   if (isTimeUp(stopAtMillis)) {
     logger.warn('time budget reached; stopping early', { date: targetDate });
-    return { completed: false };
+    return { completed: false, reason: 'TIME_BUDGET' };
   }
 
   if (!config.locationHistoryFileId) {
@@ -107,19 +107,32 @@ function processOneDay({ config, logger, run, jobState, stopAtMillis, getDayPoin
   }
 
   jobState.cursor.nextDateToProcess = addDaysJst(targetDate, 1);
-  return { completed: true };
+  return { completed: true, reason: 'OK' };
+}
+
+function _maybeScheduleRetry({ allowRetry, logger, minutesFromNow = 2 }) {
+  if (!allowRetry) return false;
+  try {
+    // retryRun is a separate handler to avoid deleting the daily scheduledRun trigger.
+    createOneTimeTrigger('retryRun', { minutesFromNow });
+    logger.info('scheduled retry trigger', { handler: 'retryRun', minutesFromNow });
+    return true;
+  } catch (e) {
+    logger.warn('failed to schedule retry trigger', { error: String(e?.message || e) });
+    return false;
+  }
 }
 
 /**
  * Manual entrypoint (run from Apps Script editor).
  * This will be wired later to the full pipeline (US1+).
  */
-function manualRun() {
+function _runCore({ allowRetry } = {}) {
   const config = loadConfig();
   const { logger, startRun, endRun } = createRunLogger({ logSheetId: config.logSheetId });
 
   let run = startRun();
-  logger.info('manualRun started', { runId: run.runId });
+  logger.info('run started', { runId: run.runId, allowRetry: Boolean(allowRetry) });
   let jobState = null;
 
   try {
@@ -144,11 +157,13 @@ function manualRun() {
 
     let daysProcessedThisRun = 0;
     let completed = true;
+    let scheduledRetry = false;
     while (true) {
       if (shouldStopAtEndDate(jobState, { endDate: config.endDate })) break;
       if (isTimeUp(stopAtMillis)) {
         completed = false;
         logger.warn('time budget reached; stopping run', { date: jobState.cursor.nextDateToProcess });
+        scheduledRetry = _maybeScheduleRetry({ allowRetry, logger });
         break;
       }
 
@@ -167,14 +182,19 @@ function manualRun() {
       completed = res.completed;
       // Always persist progress after each attempt (safe resume)
       saveJobState(jobState);
-      if (!completed) break;
+      if (!completed) {
+        if (res.reason === 'TIME_BUDGET') {
+          scheduledRetry = _maybeScheduleRetry({ allowRetry, logger });
+        }
+        break;
+      }
       daysProcessedThisRun++;
     }
 
-    logger.info('manualRun completed', { runId: run.runId, completed, daysProcessedThisRun });
+    logger.info('run completed', { runId: run.runId, completed, daysProcessedThisRun, scheduledRetry });
   } catch (e) {
     run.errors.push({ kind: e.code || 'ERROR', message: String(e.message || e) });
-    logger.error('manualRun failed', { runId: run.runId, error: String(e.message || e) });
+    logger.error('run failed', { runId: run.runId, error: String(e.message || e) });
     throw e;
   } finally {
     try {
@@ -191,12 +211,23 @@ function manualRun() {
   }
 }
 
+function manualRun() {
+  // Manual run should not create additional triggers.
+  return _runCore({ allowRetry: false });
+}
+
 /**
  * Scheduled entrypoint (time-driven trigger).
  */
 function scheduledRun() {
-  // For now, reuse manual behavior.
-  return manualRun();
+  return _runCore({ allowRetry: true });
+}
+
+/**
+ * One-time retry handler (created automatically when time budget is reached).
+ */
+function retryRun() {
+  return _runCore({ allowRetry: true });
 }
 
 /**
@@ -213,6 +244,7 @@ function uninstallDailyTrigger() {
 // Expose functions for Apps Script runtime
 globalThis.manualRun = manualRun;
 globalThis.scheduledRun = scheduledRun;
+globalThis.retryRun = retryRun;
 globalThis.installDailyTrigger = installDailyTrigger;
 globalThis.uninstallDailyTrigger = uninstallDailyTrigger;
 

@@ -97,6 +97,11 @@ Apps Script エディタから以下を実行してトリガーを設定でき�
 - `installDailyTrigger(3)` : 毎日 3:00 に `scheduledRun` を実行
 - `uninstallDailyTrigger()` : `scheduledRun` のトリガーを削除
 
+補足:
+
+- `scheduledRun` は、実行時間の上限で止まった場合に **数分後の `retryRun`（1回だけ）** を自動でスケジュールします。
+  これにより、同じ日付の処理を当日中に繰り返して進め、`MAX_ROUTE_REQUESTS_PER_DAY` を使い切るまで回せます。
+
 ### 再開/停止
 
 - 進捗（次に処理する日付）は Script Properties の `JOB_STATE` に保存されます
