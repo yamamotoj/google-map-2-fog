@@ -7,9 +7,9 @@ function millisNow() {
 }
 
 // NOTE:
-// Apps Script execution limits vary by account type. This project targets up to ~20 min runs.
+// Apps Script hard timeout can be ~6 minutes depending on account type.
 // We keep a safety margin to ensure state is saved before hard timeout.
-function computeStopAt({ maxMillis = 20 * 60 * 1000, safetyMillis = 60 * 1000 } = {}) {
+function computeStopAt({ maxMillis = 5 * 60 * 1000, safetyMillis = 15 * 1000 } = {}) {
   return millisNow() + Math.max(0, maxMillis - safetyMillis);
 }
 
@@ -110,8 +110,12 @@ function processOneDay({ config, logger, run, jobState, stopAtMillis, getDayPoin
   return { completed: true, reason: 'OK' };
 }
 
-function _maybeScheduleRetry({ allowRetry, logger, minutesFromNow = 2 }) {
+function _maybeScheduleRetry({ allowRetry, logger, config, jobState, minutesFromNow = 2 }) {
   if (!allowRetry) return false;
+  // If route enrichment is enabled, only retry while today's route budget remains.
+  if (config?.enableRouteEnrichment && jobState && !canConsumeRouteRequest(jobState)) {
+    return false;
+  }
   try {
     // retryRun is a separate handler to avoid deleting the daily scheduledRun trigger.
     createOneTimeTrigger('retryRun', { minutesFromNow });
@@ -163,7 +167,7 @@ function _runCore({ allowRetry } = {}) {
       if (isTimeUp(stopAtMillis)) {
         completed = false;
         logger.warn('time budget reached; stopping run', { date: jobState.cursor.nextDateToProcess });
-        scheduledRetry = _maybeScheduleRetry({ allowRetry, logger });
+        scheduledRetry = _maybeScheduleRetry({ allowRetry, logger, config, jobState });
         break;
       }
 
@@ -184,7 +188,7 @@ function _runCore({ allowRetry } = {}) {
       saveJobState(jobState);
       if (!completed) {
         if (res.reason === 'TIME_BUDGET') {
-          scheduledRetry = _maybeScheduleRetry({ allowRetry, logger });
+          scheduledRetry = _maybeScheduleRetry({ allowRetry, logger, config, jobState });
         }
         break;
       }
