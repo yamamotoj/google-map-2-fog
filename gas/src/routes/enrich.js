@@ -70,6 +70,12 @@ function _resolveRouteCache() {
   return { build, get, put };
 }
 
+function _resolveOpenDayRouteCache() {
+  if (typeof openDayRouteCache !== 'undefined') return openDayRouteCache;
+  if (typeof require !== 'undefined') return require('./dayCache').openDayRouteCache;
+  return null;
+}
+
 /**
  * Enrich consecutive points with route polyline points between them.
  * - Respects daily budget (jobState.budget.*)
@@ -77,7 +83,7 @@ function _resolveRouteCache() {
   * - Fails safe: if route fails, falls back to original points
   * - If budget is exhausted, STOP and signal caller to halt the run (no partial export)
  *
-  * @returns {{points:Array, stoppedDueToBudget?:boolean, stats:{pairs:number,requested:number,cacheHit:number,addedPoints:number,skippedBudget:number,failed:number}}}
+ * @returns {{points:Array, stoppedDueToBudget?:boolean, stats:{pairs:number,requested:number,cacheHit:number,addedPoints:number,skippedBudget:number,failed:number}}}
  */
 function enrichPointsWithRoutes({ points, config, jobState, logger }) {
   const pts = Array.isArray(points) ? points : [];
@@ -105,20 +111,6 @@ function enrichPointsWithRoutes({ points, config, jobState, logger }) {
   const canConsume = _resolveCanConsumeRouteRequest();
   const consume = _resolveConsumeRouteRequest();
 
-  // In-run memory cache (avoid duplicate CacheService/HTTP for same key)
-  const mem = {};
-
-  function getCached(key) {
-    if (mem[key]) return mem[key];
-    const v = cache.get(key);
-    if (v) mem[key] = v;
-    return v || null;
-  }
-  function setCached(key, v) {
-    mem[key] = v;
-    cache.put(key, v);
-  }
-
   out.push(pts[0]);
   for (let i = 0; i < pts.length - 1; i++) {
     const a = pts[i];
@@ -142,7 +134,7 @@ function enrichPointsWithRoutes({ points, config, jobState, logger }) {
       : configuredMode;
 
     const key = cache.build({ mode: modeForPair, origin: a, destination: b });
-    const cached = getCached(key);
+    const cached = cache.get(key);
     let route;
     if (cached) {
       stats.cacheHit++;
@@ -161,7 +153,7 @@ function enrichPointsWithRoutes({ points, config, jobState, logger }) {
           departureTimeEpochSeconds
         });
         // cache only successful responses
-        setCached(key, route);
+        cache.put(key, route);
       } catch (e) {
         stats.failed++;
         logger?.warn?.('route request failed; fallback to points only', {

@@ -68,9 +68,7 @@ function processOneDay({ config, logger, run, jobState, stopAtMillis, getDayPoin
           });
           return { completed: false, reason: 'BUDGET_EXHAUSTED' };
         }
-
         exportPoints = enriched.points;
-        // reflect latest usage in run log
         run.routeRequestsUsed = jobState.budget.routeRequestsUsedToday;
         logger.info('route enrichment stats', {
           date: targetDate,

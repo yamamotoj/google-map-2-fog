@@ -16,8 +16,13 @@ function addDaysJst(dateStr, days) {
     err.code = 'INVALID_DATE';
     throw err;
   }
-  d.setDate(d.getDate() + days);
-  return _resolveFormatJstDate()(d);
+  // IMPORTANT:
+  // Do NOT use setDate()/getDate() here because they are affected by the project's timezone/DST.
+  // (e.g. 2011-03-13 can get stuck in some DST zones.)
+  // We treat dateStr as JST midnight and advance by whole days in milliseconds.
+  const dayMs = 24 * 60 * 60 * 1000;
+  const next = new Date(d.getTime() + dayMs * Number(days || 0));
+  return _resolveFormatJstDate()(next);
 }
 
 function ensureCursorInitialized(jobState, { startDate } = {}) {
