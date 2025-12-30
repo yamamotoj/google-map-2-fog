@@ -110,6 +110,19 @@ function parseGeo(s) {
   return { lat, lng };
 }
 
+function datePartYyyyMmDd(isoLike) {
+  if (!isoLike || typeof isoLike !== 'string') return null;
+  // iPhone export uses e.g. "2010-12-20T09:14:23.200+09:00" (already JST-offset)
+  if (isoLike.length >= 10) return isoLike.slice(0, 10);
+  return null;
+}
+
+function resolveIterateJsonArrayObjectStrings() {
+  if (typeof iterateJsonArrayObjectStrings !== 'undefined') return iterateJsonArrayObjectStrings;
+  if (typeof require !== 'undefined') return require('./parser').iterateJsonArrayObjectStrings;
+  throw new Error('iterateJsonArrayObjectStrings is not available');
+}
+
 function normalizeFromIphoneTimelineExport(records) {
   // Top-level array of objects with {startTime,endTime,activity?,visit?}
   const points = [];
@@ -143,6 +156,62 @@ function normalizeFromIphoneTimelineExport(records) {
 }
 
 /**
+ * Fast path: normalize ONLY the points for a given JST date from iPhone export JSON text (top-level array).
+ * This avoids JSON.parse of the full array, by parsing each element object individually.
+ *
+ * @param {string} jsonText
+ * @param {string} date YYYY-MM-DD (JST)
+ */
+function normalizeIphoneDayPointsFromJsonText(jsonText, date) {
+  const points = [];
+  const iter = resolveIterateJsonArrayObjectStrings();
+  iter(jsonText, (objStr) => {
+    let r;
+    try {
+      r = JSON.parse(objStr);
+    } catch (_) {
+      return;
+    }
+
+    const startDate = datePartYyyyMmDd(r?.startTime);
+    const endDate = datePartYyyyMmDd(r?.endTime);
+
+    // Visit: use startTime only (consistent with existing normalizer)
+    if (r?.visit?.topCandidate?.placeLocation) {
+      if (startDate !== date) return;
+      const g = parseGeo(r.visit.topCandidate.placeLocation);
+      if (g && r.startTime) {
+        const p = normalizePoint({ lat: g.lat, lng: g.lng, time: String(r.startTime) });
+        if (p) points.push(p);
+      }
+      return;
+    }
+
+    // Activity: emit start/end points, but only when they belong to the target date
+    if (r?.activity?.start || r?.activity?.end) {
+      if (startDate === date && r?.activity?.start && r.startTime) {
+        const s = parseGeo(r.activity.start);
+        if (s) {
+          const p = normalizePoint({ lat: s.lat, lng: s.lng, time: String(r.startTime) });
+          if (p) points.push(p);
+        }
+      }
+      if (endDate === date && r?.activity?.end && r.endTime) {
+        const e = parseGeo(r.activity.end);
+        if (e) {
+          const p = normalizePoint({ lat: e.lat, lng: e.lng, time: String(r.endTime) });
+          if (p) points.push(p);
+        }
+      }
+    }
+  });
+
+  const deduped = dedupeByLatLngTime(points);
+  deduped.sort((a, b) => (a.time < b.time ? -1 : a.time > b.time ? 1 : 0));
+  return deduped;
+}
+
+/**
  * Normalize an export JSON into TimelinePoint[].
  * Supported formats:
  * - Takeout-style objects with "locations" or "timelineObjects"
@@ -164,7 +233,7 @@ function normalizeFromTakeoutJson(json) {
 }
 
 if (typeof module !== 'undefined') {
-  module.exports = { normalizeFromTakeoutJson };
+  module.exports = { normalizeFromTakeoutJson, normalizeIphoneDayPointsFromJsonText };
 }
 
 

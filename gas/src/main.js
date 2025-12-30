@@ -30,9 +30,18 @@ function processOneDay({ config, logger, run, jobState, stopAtMillis }) {
   }
 
   const file = DriveApp.getFileById(config.locationHistoryFileId);
-  const json = parseDriveJsonFile(file);
-  const pts = normalizeFromTakeoutJson(json);
-  const dayPoints = filterPointsByJstDate(pts, targetDate);
+
+  // Fast path for iPhone export JSON (top-level array): avoid parsing the full array.
+  const text = readDriveTextFile(file);
+  const trimmed = String(text).trimStart();
+  const dayPoints = trimmed.startsWith('[')
+    ? normalizeIphoneDayPointsFromJsonText(text, targetDate)
+    : (() => {
+        // Fallback: takeout-like object JSON
+        const json = JSON.parse(text);
+        const pts = normalizeFromTakeoutJson(json);
+        return filterPointsByJstDate(pts, targetDate);
+      })();
 
   run.processedDates.push(targetDate);
 

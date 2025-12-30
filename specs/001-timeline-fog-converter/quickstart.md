@@ -53,6 +53,14 @@
 2. Driveに `timeline-YYYY-MM-DD.gpx` が生成されることを確認
 3. Fog of World にインポートできることを確認
 
+## 6.1 Apps Script上でのセルフテスト（推奨）
+
+Nodeのユニットテストとは別に、Apps Script上で **Drive入出力まで含めて**動作確認できます。
+
+1. `clasp push` で最新コードを反映
+2. Apps Script エディタで `runSelfTest()` を実行
+3. 実行ログに `SelfTest OK` が出ればOK（テスト用の一時フォルダ/ファイルは最後にゴミ箱へ移動します）
+
 ## 7. 日次スケジュール
 
 1. 時間主導トリガーで毎日実行するよう設定
