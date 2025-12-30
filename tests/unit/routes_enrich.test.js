@@ -108,4 +108,33 @@ test('inferTravelMode: 条件を満たすとtransitを推定できる（オプ�
   assert.equal(transit, 'transit');
 });
 
+test('enrichPointsWithRoutes: 予算切れなら停止フラグを返す（点のみ継続しない）', () => {
+  global.fetchDirectionsRoute = () => ({
+    polyline: '_p~iF~ps|U_ulLnnqC_mqNvxq`@'
+  });
+
+  const jobState = {
+    budget: {
+      maxRouteRequestsPerDay: 0,
+      routeRequestsUsedToday: 0,
+      lastBudgetResetDate: '2010-12-20'
+    }
+  };
+
+  const pts = [
+    { lat: 38.5, lng: -120.2, time: '2010-12-20T00:00:00.000Z' },
+    { lat: 43.252, lng: -126.453, time: '2010-12-20T01:00:00.000Z' }
+  ];
+
+  const res = enrichPointsWithRoutes({
+    points: pts,
+    config: { enableRouteEnrichment: true, mapsApiKey: 'dummy', routeTravelMode: 'driving', routeMinDistanceMeters: 0, enableRouteModeAuto: false },
+    jobState,
+    logger: { warn: () => {}, info: () => {} }
+  });
+
+  assert.equal(res.stoppedDueToBudget, true);
+  assert.equal(res.points.length, 0);
+});
+
 

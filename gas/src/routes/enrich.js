@@ -74,14 +74,16 @@ function _resolveRouteCache() {
  * Enrich consecutive points with route polyline points between them.
  * - Respects daily budget (jobState.budget.*)
  * - Uses CacheService (best-effort) to avoid repeat API calls
- * - Fails safe: if route fails, falls back to original points
+  * - Fails safe: if route fails, falls back to original points
+  * - If budget is exhausted, STOP and signal caller to halt the run (no partial export)
  *
- * @returns {{points:Array, stats:{pairs:number,requested:number,cacheHit:number,addedPoints:number,skippedBudget:number,failed:number}}}
+  * @returns {{points:Array, stoppedDueToBudget?:boolean, stats:{pairs:number,requested:number,cacheHit:number,addedPoints:number,skippedBudget:number,failed:number}}}
  */
 function enrichPointsWithRoutes({ points, config, jobState, logger }) {
   const pts = Array.isArray(points) ? points : [];
   const out = [];
   const stats = { pairs: 0, requested: 0, cacheHit: 0, addedPoints: 0, skippedBudget: 0, failed: 0 };
+  let stoppedDueToBudget = false;
 
   if (!config?.enableRouteEnrichment) {
     return { points: pts, stats };
@@ -131,8 +133,8 @@ function enrichPointsWithRoutes({ points, config, jobState, logger }) {
 
     if (!canConsume(jobState)) {
       stats.skippedBudget++;
-      out.push(b);
-      continue;
+      stoppedDueToBudget = true;
+      break;
     }
 
     const modeForPair = autoMode
@@ -190,7 +192,7 @@ function enrichPointsWithRoutes({ points, config, jobState, logger }) {
     out.push(b);
   }
 
-  return { points: out, stats };
+  return { points: stoppedDueToBudget ? [] : out, stoppedDueToBudget, stats };
 }
 
 // Expose for Apps Script runtime

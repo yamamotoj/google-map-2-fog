@@ -53,6 +53,9 @@ function loadConfig() {
     `Missing Script Property: ${keys.OUTPUT_FOLDER_ID}`
   );
 
+  const outputMode = (store.getProperty(keys.OUTPUT_MODE) || '').trim() || 'daily';
+  const outputFileName = (store.getProperty(keys.OUTPUT_FILE_NAME) || '').trim() || 'timeline-all.gpx';
+
   const maxRouteRequestsPerDay = parsePositiveInt(
     store.getProperty(keys.MAX_ROUTE_REQUESTS_PER_DAY),
     0
@@ -73,6 +76,8 @@ function loadConfig() {
     locationHistoryFileId,
     takeoutFolderId,
     outputFolderId,
+    outputMode,
+    outputFileName,
     maxRouteRequestsPerDay,
     mapsApiKey,
     enableRouteEnrichment,

@@ -39,6 +39,8 @@
 
 - `LOCATION_HISTORY_FILE_ID`: Drive上の `location-history.json` のファイルID
 - `OUTPUT_FOLDER_ID`: 出力フォルダID
+- `OUTPUT_MODE`: 出力モード（未設定は `daily`。`single` にすると1つのGPXに追記）
+- `OUTPUT_FILE_NAME`: `OUTPUT_MODE=single` のときの出力ファイル名（未設定は `timeline-all.gpx`）
 - `MAX_ROUTE_REQUESTS_PER_DAY`: 経路補完の日次上限（無料枠/予算に合わせる）
 - `START_DATE`: 初回に処理を開始する日付（`YYYY-MM-DD`、JST基準。US3のカーソル初期化に必須）
 
