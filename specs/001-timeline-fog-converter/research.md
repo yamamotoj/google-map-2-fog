@@ -6,15 +6,15 @@
 
 ## Decisions
 
-### Decision 1: 入力は Google Takeout の「位置履歴（タイムライン）」JSON
+### Decision 1: 入力は iPhone（Google マップアプリ）の「タイムライン データをエクスポート」JSON
 
-- **Chosen**: Google Takeout のエクスポート（ZIP）を解凍し、JSONをGoogle Driveに配置して入力とする
-- **Rationale**: オンラインからの直接取得は認可/取得可否が不確実で、長期データに対して安定しないため
+- **Chosen**: iPhone（Google マップアプリ）から「タイムライン データをエクスポート」で出力したJSONを、Google Driveに配置して入力とする
+- **Rationale**: 暗号化バックアップ（E2EE）はTakeout等から復号せずに扱えない。端末からのエクスポートJSONを扱う方が確実なため
 - **Alternatives considered**:
   - 直接取得（未確定要素が大きく、実装・運用ともに重くなる）
 
 **Implementation notes (high level)**:
-- Takeout はZIP内に多数ファイルが含まれる可能性があるため、Drive上で「日/期間単位」のファイル処理を基本とする
+- エクスポート結果が複数ファイルになる可能性があるため、Drive上で「複数JSONを順次処理」できる設計を基本とする
 - 入力フォルダ配下を走査し、対象JSONを順次処理できる設計（巨大ファイル一括ロードを避ける）
 
 ### Decision 2: Fog of World への出力は GPX（trk/trkseg/trkpt）
@@ -66,7 +66,7 @@
 
 ## Open Questions (resolved for this phase)
 
-- 入力元: Google Takeout ✅
+- 入力元: iPhoneエクスポートJSON ✅
 - 出力形式: GPX ✅
 - iCloud格納: Drive → iPhone自動化 ✅
 

@@ -32,7 +32,7 @@
 ## Notes
 
 - Clarifications resolved:
-  - Input source: Google Takeout export files
+  - Input source: iPhone（Google マップアプリ）の「タイムライン データをエクスポート」で出力したJSON
   - Export format: GPX
   - iCloud delivery: Output to intermediary storage, then iPhone automation moves to iCloud
 

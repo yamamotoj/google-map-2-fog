@@ -1,0 +1,33 @@
+# google-map-2-fog Development Guidelines
+
+Auto-generated from all feature plans. Last updated: 2025-12-30
+
+## Active Technologies
+- Google Drive（入力/出力ファイル）、Apps Script Properties（進捗・設定）、（任意）Spreadsheet（実行ログ） (001-timeline-fog-converter)
+
+- Google Apps Script（V8 runtime / JavaScript。必要に応じてTypeScriptを利用） + Apps Script built-ins（DriveApp/UrlFetchApp/PropertiesService/Triggers）、Google Maps Platform（Routes/Directions系の経路検索） (001-timeline-fog-converter)
+
+## Project Structure
+
+```text
+gas/
+  appsscript.json
+  src/
+tests/
+specs/
+```
+
+## Commands
+
+npm test && npm run lint
+
+## Code Style
+
+Google Apps Script（V8 runtime / JavaScript。必要に応じてTypeScriptを利用）: Follow standard conventions
+
+## Recent Changes
+- 001-timeline-fog-converter: Added Google Apps Script（V8 runtime / JavaScript。必要に応じてTypeScriptを利用） + Apps Script built-ins（DriveApp/UrlFetchApp/PropertiesService/Triggers）、Google Maps Platform（Routes/Directions系の経路検索）
+
+
+<!-- MANUAL ADDITIONS START -->
+<!-- MANUAL ADDITIONS END -->
