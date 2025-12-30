@@ -47,6 +47,16 @@
 - `LOG_SHEET_ID`: 実行ログのSpreadsheet
 - `END_DATE`: 処理を終了する日付（`YYYY-MM-DD`、JST基準。指定するとその日を超えたら停止）
 
+### 経路補完（US2）を有効化する場合
+
+経路補完は **Google Directions API** を呼び出します（外部通信）。コスト/クオータ管理のため、デフォルトでは無効です。
+
+- `ENABLE_ROUTE_ENRICHMENT`: `1` で有効化（未設定/それ以外は無効）
+- `MAPS_API_KEY`: Google Maps Platform のAPIキー（Directions API を有効化したプロジェクトのもの）
+- `ROUTE_TRAVEL_MODE`: `driving` / `walking` / `bicycling` / `transit`（未設定は `driving`）
+- `ROUTE_MIN_DISTANCE_METERS`: 補完対象とする最小距離（未設定は `200`）
+- `MAX_ROUTE_REQUESTS_PER_DAY`: 日次の最大リクエスト数（予算/無料枠に合わせる）
+
 ## 6. 初回実行（小さい範囲で）
 
 1. 1日分など小さい範囲で変換を実行

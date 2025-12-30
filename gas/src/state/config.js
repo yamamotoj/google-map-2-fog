@@ -58,6 +58,11 @@ function loadConfig() {
     0
   );
 
+  const mapsApiKey = (store.getProperty(keys.MAPS_API_KEY) || '').trim() || null;
+  const enableRouteEnrichment = (store.getProperty(keys.ENABLE_ROUTE_ENRICHMENT) || '').trim() === '1';
+  const routeTravelMode = (store.getProperty(keys.ROUTE_TRAVEL_MODE) || '').trim() || 'driving';
+  const routeMinDistanceMeters = parsePositiveInt(store.getProperty(keys.ROUTE_MIN_DISTANCE_METERS), 200);
+
   const logSheetId = (store.getProperty(keys.LOG_SHEET_ID) || '').trim() || null;
   const startDate = (store.getProperty(keys.START_DATE) || '').trim() || null;
   const endDate = (store.getProperty(keys.END_DATE) || '').trim() || null;
@@ -67,6 +72,10 @@ function loadConfig() {
     takeoutFolderId,
     outputFolderId,
     maxRouteRequestsPerDay,
+    mapsApiKey,
+    enableRouteEnrichment,
+    routeTravelMode,
+    routeMinDistanceMeters,
     logSheetId,
     startDate,
     endDate

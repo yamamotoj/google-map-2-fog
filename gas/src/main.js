@@ -48,10 +48,35 @@ function processOneDay({ config, logger, run, jobState, stopAtMillis }) {
   if (dayPoints.length === 0) {
     logger.info('no points for date (skip export)', { date: targetDate });
   } else {
+    let exportPoints = dayPoints;
+
+    // US2: route enrichment (optional, failsafe)
+    if (config.enableRouteEnrichment) {
+      try {
+        const before = exportPoints.length;
+        const enriched = enrichPointsWithRoutes({ points: exportPoints, config, jobState, logger });
+        exportPoints = enriched.points;
+        // reflect latest usage in run log
+        run.routeRequestsUsed = jobState.budget.routeRequestsUsedToday;
+        logger.info('route enrichment stats', {
+          date: targetDate,
+          beforePoints: before,
+          afterPoints: exportPoints.length,
+          ...enriched.stats
+        });
+      } catch (e) {
+        logger.warn('route enrichment failed; fallback to points only', {
+          date: targetDate,
+          error: String(e?.message || e),
+          code: e?.code || null
+        });
+      }
+    }
+
     const result = exportDailyGpxToDrive({
       outputFolderId: config.outputFolderId,
       date: targetDate,
-      points: dayPoints
+      points: exportPoints
     });
     if (!result.skipped) {
       run.exportedFiles.push({ date: targetDate, fileId: result.fileId });
