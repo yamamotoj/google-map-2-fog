@@ -31,10 +31,10 @@ description: "Task list for implementing the converter (GAS) and long-running sc
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 [P] [US1] `gas/` ディレクトリを作成し、`appsscript.json` と `gas/src/` 骨格を用意する（検証: リポジトリに構造が追加されている）
-- [ ] T002 [P] [US1] clasp の導入方針を決める（README相当が無いので `specs/001-timeline-fog-converter/quickstart.md` に手順追記でも可）（検証: ローカル→GASへpushできる前提が明文化）
-- [ ] T003 [P] [US1] `gas/src/state/` に Script Properties キー一覧（定数）を定義する（検証: 参照すべきキーがコードで一元管理される）
-- [ ] T004 [P] [US1] `tools/fixtures/` に小さなTakeoutサンプル（匿名化）を置くか、置けない場合は生成手順を `quickstart.md` に追記する（検証: US1の検証用入力が再現可能）
+- [x] T001 [P] [US1] `gas/` ディレクトリを作成し、`appsscript.json` と `gas/src/` 骨格を用意する（検証: リポジトリに構造が追加されている）
+- [x] T002 [P] [US1] clasp の導入方針を決める（README相当が無いので `specs/001-timeline-fog-converter/quickstart.md` に手順追記でも可）（検証: ローカル→GASへpushできる前提が明文化）
+- [x] T003 [P] [US1] `gas/src/state/` に Script Properties キー一覧（定数）を定義する（検証: 参照すべきキーがコードで一元管理される）
+- [x] T004 [P] [US1] `tools/fixtures/` に小さなTakeoutサンプル（匿名化）を置くか、置けない場合は生成手順を `quickstart.md` に追記する（検証: US1の検証用入力が再現可能）
 
 ---
 
@@ -44,11 +44,11 @@ description: "Task list for implementing the converter (GAS) and long-running sc
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T005 [P] [US1] 入出力フォルダの「契約」をコード化する: `gas/src/state/config.ts`（TAKEOUT_FOLDER_ID/OUTPUT_FOLDER_ID 等の取得とバリデーション）（検証: 設定不足で明確なエラーになる）
-- [ ] T006 [P] [US1] 実行ログの最小インターフェースを作る: `gas/src/state/runLog.ts`（console or Spreadsheet を抽象化）（検証: 実行サマリが必ず残る）
-- [ ] T007 [P] [US3] `JobState` の永続化を実装: `gas/src/state/jobState.ts`（読み/書き、初期化、スキーマversion）（検証: 進捗が保存され次回読み出せる）
-- [ ] T008 [P] [US3] 日次予算（経路補完上限）の管理を実装: `gas/src/state/budget.ts`（日付でリセット、消費、上限判定）（検証: 上限到達で補完を止められる）
-- [ ] T009 [US1] エントリポイントを用意: `gas/src/main.ts`（手動実行関数 + 日次トリガー用関数を分ける）（検証: GASエディタから実行できる）
+- [x] T005 [P] [US1] 入出力フォルダの「契約」をコード化する: `gas/src/state/config.js`（TAKEOUT_FOLDER_ID/OUTPUT_FOLDER_ID 等の取得とバリデーション）（検証: 設定不足で明確なエラーになる）
+- [x] T006 [P] [US1] 実行ログの最小インターフェースを作る: `gas/src/state/runLog.js`（console or Spreadsheet を抽象化）（検証: 実行サマリが必ず残る）
+- [x] T007 [P] [US3] `JobState` の永続化を実装: `gas/src/state/jobState.js`（読み/書き、初期化、スキーマversion）（検証: 進捗が保存され次回読み出せる）
+- [x] T008 [P] [US3] 日次予算（経路補完上限）の管理を実装: `gas/src/state/budget.js`（日付でリセット、消費、上限判定）（検証: 上限到達で補完を止められる）
+- [x] T009 [US1] エントリポイントを用意: `gas/src/main.js`（手動実行関数 + 日次トリガー用関数を分ける）（検証: GASエディタから実行できる）
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -64,19 +64,19 @@ description: "Task list for implementing the converter (GAS) and long-running sc
 
 > **NOTE: 可能な限りテスト/検証を先に作る（少なくともサンプル入力での再現可能な手順を確立）**
 
-- [ ] T010 [P] [US1] サンプル入力 → 正規化点列 変換の単体テストを作る: `tests/unit/takeout_normalize.test.ts`（検証: 欠損/重複の扱いが期待通り）
-- [ ] T011 [P] [US1] GPX生成の単体テストを作る: `tests/unit/gpx_builder.test.ts`（検証: `trkpt lat/lon` と `time` が含まれる）
+- [x] T010 [P] [US1] サンプル入力 → 正規化点列 変換の単体テストを作る: `tests/unit/takeout_normalize.test.js`（検証: 欠損/重複の扱いが期待通り）
+- [x] T011 [P] [US1] GPX生成の単体テストを作る: `tests/unit/gpx_builder.test.js`（検証: `trkpt lat/lon` と `time` が含まれる）
 - [ ] T012 [US1] 手動E2E手順を `specs/001-timeline-fog-converter/quickstart.md` に追記（Fog of Worldへの取り込みまで）（検証: 第三者が再現できる）
 
 ### Implementation for User Story 1
 
-- [ ] T013 [P] [US1] Takeout JSON の探索/読み込み: `gas/src/takeout/discovery.ts`（Driveフォルダ配下から対象JSONを列挙）（検証: 入力フォルダから候補ファイルを列挙できる）
-- [ ] T014 [P] [US1] Takeout JSON のパース: `gas/src/takeout/parser.ts`（壊れたJSON/想定外をファイル単位でスキップ）（検証: 異常ファイルがあっても全体は継続）
-- [ ] T015 [P] [US1] 正規化（Raw → TimelinePoint）: `gas/src/takeout/normalize.ts`（E7座標→度、timestamp正規化、欠損スキップ、重複排除/間引き）（検証: specのUS1シナリオを満たす）
-- [ ] T016 [P] [US1] 日単位の分割（点列→YYYY-MM-DD単位）: `gas/src/takeout/partition.ts`（検証: 出力単位が日ごとになる）
-- [ ] T017 [P] [US1] GPXビルダー: `gas/src/gpx/builder.ts`（trk/trkseg/trkpt生成）（検証: `contracts/output-gpx.md` を満たす）
-- [ ] T018 [P] [US1] Drive出力: `gas/src/gpx/exportToDrive.ts`（出力フォルダへ `timeline-YYYY-MM-DD.gpx` 作成、既存あればスキップ）（検証: 冪等に動く）
-- [ ] T019 [US1] `main.ts` からUS1パイプラインを実行できるよう統合（検証: 1日分の出力が作れる）
+- [x] T013 [P] [US1] Takeout JSON の探索/読み込み: `gas/src/takeout/discovery.js`（Driveフォルダ配下から対象JSONを列挙）（検証: 入力フォルダから候補ファイルを列挙できる）
+- [x] T014 [P] [US1] Takeout JSON のパース: `gas/src/takeout/parser.js`（壊れたJSON/想定外をファイル単位でスキップ）（検証: 異常ファイルがあっても全体は継続）
+- [x] T015 [P] [US1] 正規化（Raw → TimelinePoint）: `gas/src/takeout/normalize.js`（E7座標→度、timestamp正規化、欠損スキップ、重複排除/間引き）（検証: specのUS1シナリオを満たす）
+- [x] T016 [P] [US1] 日単位の分割（点列→YYYY-MM-DD単位）: `gas/src/takeout/partition.js`（検証: 出力単位が日ごとになる）
+- [x] T017 [P] [US1] GPXビルダー: `gas/src/gpx/builder.js`（trk/trkseg/trkpt生成）（検証: `contracts/output-gpx.md` を満たす）
+- [x] T018 [P] [US1] Drive出力: `gas/src/gpx/exportToDrive.js`（出力フォルダへ `timeline-YYYY-MM-DD.gpx` 作成、既存あればスキップ）（検証: 冪等に動く）
+- [x] T019 [US1] `main.js` からUS1パイプラインを実行できるよう統合（検証: 1日分の出力が作れる）
 
 **Checkpoint**: User Story 1 should be fully functional and testable independently
 
@@ -119,11 +119,11 @@ description: "Task list for implementing the converter (GAS) and long-running sc
 
 ### Implementation for User Story 3
 
-- [ ] T030 [P] [US3] 日次カーソル（次に処理する日）を決める: `gas/src/state/cursor.ts`（検証: 未処理日が前進する）
-- [ ] T031 [US3] 1回の実行での停止条件を実装: `gas/src/main.ts`（時間制限手前/予算到達/件数上限）（検証: 上限で停止しつつ進捗が保存される）
-- [ ] T032 [US3] トリガー作成/削除ユーティリティを実装: `gas/src/state/triggers.ts`（検証: 日次トリガーを設定できる）
-- [ ] T033 [US3] 例外時でも runLog と JobState を確実に更新（finally）する（検証: 失敗しても次回再開できる）
-- [ ] T034 [US3] 運用ガイド追記: `specs/001-timeline-fog-converter/quickstart.md`（日次運用、停止/再開、予算調整）（検証: 運用手順が明確）
+- [x] T030 [P] [US3] 日次カーソル（次に処理する日）を決める: `gas/src/state/cursor.js`（検証: 未処理日が前進する）
+- [x] T031 [US3] 1回の実行での停止条件を実装: `gas/src/main.js`（時間制限手前/予算到達/件数上限）（検証: 上限で停止しつつ進捗が保存される）
+- [x] T032 [US3] トリガー作成/削除ユーティリティを実装: `gas/src/state/triggers.js`（検証: 日次トリガーを設定できる）
+- [x] T033 [US3] 例外時でも runLog と JobState を確実に更新（finally）する: `gas/src/main.js`（検証: 失敗しても次回再開できる）
+- [x] T034 [US3] 運用ガイド追記: `specs/001-timeline-fog-converter/quickstart.md`（日次運用、停止/再開、予算調整）（検証: 運用手順が明確）
 
 **Checkpoint**: All user stories should now be independently functional
 
