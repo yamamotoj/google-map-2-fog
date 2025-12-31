@@ -15,25 +15,35 @@ function ensureStartDateInFileName(fileName, startDate) {
   return `${head}-${sd}${ext}`;
 }
 
-function buildYearlyOutputFileName(fileNameOrNull, year) {
+function getYearlyPrefix(fileNameOrNull) {
+  const base = (fileNameOrNull || '').trim() || 'timeline.gpx';
+  const { head } = _splitExt(base);
+  // If the user provided a concrete date (e.g. timeline-2010-01-01.gpx),
+  // treat it as a template and strip the trailing date for the prefix.
+  return head.replace(/-\d{4}-\d{2}-\d{2}$/u, '');
+}
+
+function buildYearlyOutputFileName(fileNameOrNull, year, startDateOrNull) {
   const y = String(year || '').trim();
   const base = (fileNameOrNull || '').trim() || 'timeline.gpx';
   if (!y) return base;
 
   const { head, ext } = _splitExt(base);
+  const startDate = String(startDateOrNull || '').trim();
   const yyyy0101 = `${y}-01-01`;
+  const suffixDate = startDate && startDate.startsWith(`${y}-`) ? startDate : yyyy0101;
 
   // If base is already the correct yearly file, keep as-is.
-  if (head.endsWith(`-${yyyy0101}`)) return `${head}${ext}`;
+  if (head.endsWith(`-${suffixDate}`)) return `${head}${ext}`;
 
   // If the user provided a concrete date (e.g. timeline-2010-01-01.gpx),
   // treat it as a template and strip the trailing date for the prefix.
-  const prefix = head.replace(/-\d{4}-\d{2}-\d{2}$/u, '');
-  return `${prefix}-${yyyy0101}${ext}`;
+  const prefix = getYearlyPrefix(base);
+  return `${prefix}-${suffixDate}${ext}`;
 }
 
 if (typeof module !== 'undefined') {
-  module.exports = { ensureStartDateInFileName, buildYearlyOutputFileName };
+  module.exports = { ensureStartDateInFileName, getYearlyPrefix, buildYearlyOutputFileName };
 }
 
 

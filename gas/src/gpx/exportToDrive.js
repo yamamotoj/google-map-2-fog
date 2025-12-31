@@ -24,6 +24,47 @@ function findFileByName(folder, fileName) {
   return files.hasNext() ? files.next() : null;
 }
 
+function _resolveFileNameHelpers() {
+  const getPrefix = typeof getYearlyPrefix !== 'undefined'
+    ? getYearlyPrefix
+    : (typeof require !== 'undefined' ? require('./fileName').getYearlyPrefix : null);
+  const buildYearly = typeof buildYearlyOutputFileName !== 'undefined'
+    ? buildYearlyOutputFileName
+    : (typeof require !== 'undefined' ? require('./fileName').buildYearlyOutputFileName : null);
+  if (!getPrefix || !buildYearly) throw new Error('fileName helpers are not available');
+  return { getPrefix, buildYearly };
+}
+
+function findExistingYearlyFileName({ folder, outputFileNameTemplate, year }) {
+  const { getPrefix } = _resolveFileNameHelpers();
+  const prefix = getPrefix(outputFileNameTemplate || 'timeline.gpx');
+  const y = String(year || '').trim();
+  if (!y) return null;
+
+  const rx = new RegExp(`^${prefix.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}-${y}-\\d{2}-\\d{2}\\.gpx$`, 'i');
+  const files = folder.getFiles();
+
+  let bestName = null;
+  let bestCreated = null;
+  while (files.hasNext()) {
+    const f = files.next();
+    const name = String(f.getName());
+    if (!rx.test(name)) continue;
+    const created = f.getDateCreated ? f.getDateCreated() : null;
+    if (!bestName) {
+      bestName = name;
+      bestCreated = created;
+      continue;
+    }
+    // Prefer the latest-created file if multiple exist (treat newest as canonical).
+    if (created && bestCreated && created.getTime() > bestCreated.getTime()) {
+      bestName = name;
+      bestCreated = created;
+    }
+  }
+  return bestName;
+}
+
 function _resolveAppendHelpers() {
   const create = typeof createEmptyGpx !== 'undefined' ? createEmptyGpx : (typeof require !== 'undefined' ? require('./append').createEmptyGpx : null);
   const hasDay = typeof gpxHasDay !== 'undefined' ? gpxHasDay : (typeof require !== 'undefined' ? require('./append').gpxHasDay : null);
@@ -57,9 +98,16 @@ function exportDailyGpxToDrive({ outputFolderId, date, points, breakDistanceMete
  * Append one day as a trkseg into a single GPX file in Drive (idempotent by marker).
  * @returns {{skipped:boolean,fileId:string,fileName:string}}
  */
-function appendDayGpxToDrive({ outputFolderId, outputFileName, date, points, breakDistanceMeters }) {
+function appendDayGpxToDrive({ outputFolderId, outputFileName, date, points, breakDistanceMeters, outputMode, startDate }) {
   const folder = getFolderById(outputFolderId);
-  const fileName = outputFileName || 'timeline-all.gpx';
+  const mode = String(outputMode || 'single').toLowerCase();
+  const year = String(date || '').slice(0, 4);
+  const { buildYearly } = _resolveFileNameHelpers();
+
+  const fileName = mode === 'yearly'
+    ? (findExistingYearlyFileName({ folder, outputFileNameTemplate: outputFileName, year }) ||
+      buildYearly(outputFileName, year, startDate))
+    : (outputFileName || 'timeline-all.gpx');
   const { create, hasDay, buildSeg, append } = _resolveAppendHelpers();
 
   let file = findFileByName(folder, fileName);

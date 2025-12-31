@@ -104,7 +104,7 @@ function processOneDay({ config, logger, run, jobState, stopAtMillis, getDayPoin
     const year = String(targetDate).slice(0, 4);
 
     const outputFileName = mode === 'yearly'
-      ? buildYearly(config.outputFileName, year) // timeline-YYYY-01-01.gpx
+      ? (config.outputFileName || 'timeline.gpx') // template; Drive側で「既存の年ファイルがあればそれ」を優先
       : ensureStart((config.outputFileName || 'timeline-all.gpx'), config.startDate);
 
     const result =
@@ -112,6 +112,8 @@ function processOneDay({ config, logger, run, jobState, stopAtMillis, getDayPoin
         ? appendDayGpxToDrive({
             outputFolderId: config.outputFolderId,
             outputFileName,
+            outputMode: mode,
+            startDate: config.startDate,
             date: targetDate,
             points: exportPoints,
             breakDistanceMeters: config.gpxBreakDistanceMeters

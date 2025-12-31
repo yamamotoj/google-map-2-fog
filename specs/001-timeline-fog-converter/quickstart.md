@@ -42,7 +42,11 @@
 - `OUTPUT_MODE`: 出力モード（未設定は `daily`。`single`=1つのGPXに追記、`yearly`=年ごとに1ファイルへ追記）
 - `OUTPUT_FILE_NAME`: `OUTPUT_MODE=single/yearly` のときの出力ファイル名
   - `single`: 未設定なら `timeline-all.gpx`。実装上はファイル名に `START_DATE` が含まれていなければ自動で `-START_DATE` が付与されます
-  - `yearly`: 未設定なら `timeline.gpx` を基準にし、出力は **`timeline-YYYY-01-01.gpx`** 形式になります（年が変わるとファイルが切り替わります）。`OUTPUT_FILE_NAME` に `timeline-2010-01-01.gpx` のような日付入りを指定しても、テンプレとして扱われ `timeline-YYYY-01-01.gpx` になります
+  - `yearly`: 未設定なら `timeline.gpx` を基準にし、出力は **年ごとに1ファイル**になります（年が変わるとファイルが切り替わります）
+    - 基本は `timeline-YYYY-01-01.gpx`
+    - ただし **開始年（`START_DATE` の年）だけは `timeline-YYYY-START_DATE.gpx`**（例: `START_DATE=2010-12-10` → `timeline-2010-12-10.gpx`）
+    - `OUTPUT_FILE_NAME` に `timeline-2010-01-01.gpx` のような日付入りを指定しても、テンプレとして扱われます
+    - さらに、**同じ年のファイルが既にDrive上に複数存在する場合は、作成日時が最も新しいファイルを優先して追記**します（新しい方を正とみなします）
 - `GPX_BREAK_DISTANCE_METERS`: 連続点の距離がこの値（メートル）以上なら **`trkseg` を分割**して直線で結ばれないようにします（未設定は `2000`）
 - `FLIGHT_MIN_DISTANCE_METERS`: 飛行機っぽい区間の最小距離（m、未設定は `50000`）
 - `FLIGHT_MAX_DURATION_HOURS`: 飛行機っぽい区間の最大時間（h、**未設定は `0`（上限なし）**。海外フライト等を考慮して、基本は上限なし推奨）
