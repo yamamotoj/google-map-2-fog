@@ -1,0 +1,162 @@
+// Apps Script runtime loads all .gs files into the same global scope.
+// Avoid redeclaring identifiers that may already exist globally (e.g. buildGpxTrack).
+// Also avoid evaluating require() at load time (Apps Script has no require and file order is not guaranteed).
+function _resolveBuildGpxTrack() {
+  if (typeof buildGpxTrack !== 'undefined') return buildGpxTrack;
+  if (typeof require !== 'undefined') return require('./builder').buildGpxTrack;
+  throw new Error('buildGpxTrack is not available');
+}
+
+function getFolderById(folderId) {
+  if (typeof DriveApp === 'undefined') {
+    throw new Error('DriveApp is not available (must run in Apps Script)');
+  }
+  return DriveApp.getFolderById(folderId);
+}
+
+function fileExistsByName(folder, fileName) {
+  const files = folder.getFilesByName(fileName);
+  return files.hasNext();
+}
+
+function findFileByName(folder, fileName) {
+  const files = folder.getFilesByName(fileName);
+  return files.hasNext() ? files.next() : null;
+}
+
+function _splitExt(name) {
+  const base = (name || '').trim();
+  const m = base.match(/^(.*?)(\.gpx)?$/i);
+  const head = m ? m[1] : base;
+  const ext = m && m[2] ? m[2] : '.gpx';
+  return { head, ext };
+}
+
+function _yearlyPrefixFromTemplate(fileNameOrNull) {
+  const base = (fileNameOrNull || '').trim() || 'timeline.gpx';
+  const { head } = _splitExt(base);
+  return head.replace(/-\d{4}-\d{2}-\d{2}$/u, '');
+}
+
+function _buildYearlyFromTemplate(fileNameOrNull, year, startDateOrNull) {
+  const y = String(year || '').trim();
+  const base = (fileNameOrNull || '').trim() || 'timeline.gpx';
+  if (!y) return base;
+  const { ext } = _splitExt(base);
+  const prefix = _yearlyPrefixFromTemplate(base);
+  const startDate = String(startDateOrNull || '').trim();
+  const yyyy0101 = `${y}-01-01`;
+  const suffixDate = startDate && startDate.startsWith(`${y}-`) ? startDate : yyyy0101;
+  return `${prefix}-${suffixDate}${ext}`;
+}
+
+function _resolveFileNameHelpersForExportToDrive() {
+  const getPrefix = typeof getYearlyPrefix !== 'undefined'
+    ? getYearlyPrefix
+    : (typeof require !== 'undefined' ? require('./fileName').getYearlyPrefix : null);
+  const buildYearly = typeof buildYearlyOutputFileName !== 'undefined'
+    ? buildYearlyOutputFileName
+    : (typeof require !== 'undefined' ? require('./fileName').buildYearlyOutputFileName : null);
+  // Be resilient in Apps Script: if a helper is missing or not a function, use local implementation.
+  const safeGetPrefix = typeof getPrefix === 'function' ? getPrefix : _yearlyPrefixFromTemplate;
+  const safeBuildYearly = typeof buildYearly === 'function' ? buildYearly : _buildYearlyFromTemplate;
+  return { getPrefix: safeGetPrefix, buildYearly: safeBuildYearly };
+}
+
+function findExistingYearlyFileName({ folder, outputFileNameTemplate, year }) {
+  const { getPrefix } = _resolveFileNameHelpersForExportToDrive();
+  const prefix = getPrefix(outputFileNameTemplate || 'timeline.gpx');
+  const y = String(year || '').trim();
+  if (!y) return null;
+
+  const rx = new RegExp(`^${prefix.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}-${y}-\\d{2}-\\d{2}\\.gpx$`, 'i');
+  const files = folder.getFiles();
+
+  let bestName = null;
+  let bestCreated = null;
+  while (files.hasNext()) {
+    const f = files.next();
+    const name = String(f.getName());
+    if (!rx.test(name)) continue;
+    const created = f.getDateCreated ? f.getDateCreated() : null;
+    if (!bestName) {
+      bestName = name;
+      bestCreated = created;
+      continue;
+    }
+    // Prefer the latest-created file if multiple exist (treat newest as canonical).
+    if (created && bestCreated && created.getTime() > bestCreated.getTime()) {
+      bestName = name;
+      bestCreated = created;
+    }
+  }
+  return bestName;
+}
+
+function _resolveAppendHelpers() {
+  const create = typeof createEmptyGpx !== 'undefined' ? createEmptyGpx : (typeof require !== 'undefined' ? require('./append').createEmptyGpx : null);
+  const hasDay = typeof gpxHasDay !== 'undefined' ? gpxHasDay : (typeof require !== 'undefined' ? require('./append').gpxHasDay : null);
+  const buildSeg = typeof buildDayTrkseg !== 'undefined' ? buildDayTrkseg : (typeof require !== 'undefined' ? require('./append').buildDayTrkseg : null);
+  const append = typeof appendTrksegToGpxXml !== 'undefined' ? appendTrksegToGpxXml : (typeof require !== 'undefined' ? require('./append').appendTrksegToGpxXml : null);
+  if (!create || !hasDay || !buildSeg || !append) throw new Error('GPX append helpers are not available');
+  return { create, hasDay, buildSeg, append };
+}
+
+/**
+ * Export a daily GPX file to Drive output folder (idempotent: skip if exists).
+ * @returns {{skipped:boolean,fileId?:string,fileName:string}}
+ */
+function exportDailyGpxToDrive({ outputFolderId, date, points, breakDistanceMeters }) {
+  const folder = getFolderById(outputFolderId);
+  const fileName = `timeline-${date}.gpx`;
+  if (fileExistsByName(folder, fileName)) {
+    return { skipped: true, fileName };
+  }
+
+  const xml = _resolveBuildGpxTrack()({
+    name: fileName.replace('.gpx', ''),
+    points,
+    breakDistanceMeters
+  });
+  const file = folder.createFile(fileName, xml, MimeType.PLAIN_TEXT);
+  return { skipped: false, fileId: file.getId(), fileName };
+}
+
+/**
+ * Append one day as a trkseg into a single GPX file in Drive (idempotent by marker).
+ * @returns {{skipped:boolean,fileId:string,fileName:string}}
+ */
+function appendDayGpxToDrive({ outputFolderId, outputFileName, date, points, breakDistanceMeters, outputMode, startDate }) {
+  const folder = getFolderById(outputFolderId);
+  const mode = String(outputMode || 'single').toLowerCase();
+  const year = String(date || '').slice(0, 4);
+  const { buildYearly } = _resolveFileNameHelpersForExportToDrive();
+
+  const fileName = mode === 'yearly'
+    ? (findExistingYearlyFileName({ folder, outputFileNameTemplate: outputFileName, year }) ||
+      buildYearly(outputFileName, year, startDate))
+    : (outputFileName || 'timeline-all.gpx');
+  const { create, hasDay, buildSeg, append } = _resolveAppendHelpers();
+
+  let file = findFileByName(folder, fileName);
+  if (!file) {
+    const initial = create({ name: fileName.replace(/\.gpx$/i, '') });
+    file = folder.createFile(fileName, initial, MimeType.PLAIN_TEXT);
+  }
+
+  const existing = file.getBlob().getDataAsString('UTF-8');
+  if (hasDay(existing, date)) {
+    return { skipped: true, fileId: file.getId(), fileName };
+  }
+
+  const seg = buildSeg({ date, points, breakDistanceMeters });
+  const updated = append(existing, seg);
+  file.setContent(updated);
+  return { skipped: false, fileId: file.getId(), fileName };
+}
+
+if (typeof module !== 'undefined') {
+  module.exports = { exportDailyGpxToDrive, appendDayGpxToDrive };
+}
+
+

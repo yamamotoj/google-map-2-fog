@@ -238,6 +238,8 @@ get_project_structure() {
     
     if [[ "$project_type" == *"web"* ]]; then
         echo "backend/\\nfrontend/\\ntests/"
+    elif [[ "$project_type" == *"GAS"* ]] || [[ "$project_type" == *"Apps Script"* ]] || [[ "$project_type" == *"apps script"* ]]; then
+        echo "gas/\\n  appsscript.json\\n  src/\\ntests/\\nspecs/"
     else
         echo "src/\\ntests/"
     fi
@@ -375,23 +377,28 @@ update_existing_agent_file() {
     
     # Process the file in one pass
     local tech_stack=$(format_technology_stack "$NEW_LANG" "$NEW_FRAMEWORK")
+    local project_structure
+    project_structure=$(get_project_structure "$NEW_PROJECT_TYPE")
     local new_tech_entries=()
     local new_change_entry=""
     
     # Prepare new technology entries
-    if [[ -n "$tech_stack" ]] && ! grep -q "$tech_stack" "$target_file"; then
+    if [[ -n "$tech_stack" ]] && ! grep -qF -- "$tech_stack" "$target_file"; then
         new_tech_entries+=("- $tech_stack ($CURRENT_BRANCH)")
     fi
     
-    if [[ -n "$NEW_DB" ]] && [[ "$NEW_DB" != "N/A" ]] && [[ "$NEW_DB" != "NEEDS CLARIFICATION" ]] && ! grep -q "$NEW_DB" "$target_file"; then
+    if [[ -n "$NEW_DB" ]] && [[ "$NEW_DB" != "N/A" ]] && [[ "$NEW_DB" != "NEEDS CLARIFICATION" ]] && ! grep -qF -- "$NEW_DB" "$target_file"; then
         new_tech_entries+=("- $NEW_DB ($CURRENT_BRANCH)")
     fi
     
-    # Prepare new change entry
+    # Prepare new change entry (avoid duplicates)
     if [[ -n "$tech_stack" ]]; then
         new_change_entry="- $CURRENT_BRANCH: Added $tech_stack"
     elif [[ -n "$NEW_DB" ]] && [[ "$NEW_DB" != "N/A" ]] && [[ "$NEW_DB" != "NEEDS CLARIFICATION" ]]; then
         new_change_entry="- $CURRENT_BRANCH: Added $NEW_DB"
+    fi
+    if [[ -n "$new_change_entry" ]] && grep -qF -- "$new_change_entry" "$target_file"; then
+        new_change_entry=""
     fi
     
     # Check if sections exist in the file
@@ -409,12 +416,43 @@ update_existing_agent_file() {
     # Process file line by line
     local in_tech_section=false
     local in_changes_section=false
+    local in_structure_section=false
+    local in_structure_codeblock=false
     local tech_entries_added=false
     local changes_entries_added=false
     local existing_changes_count=0
+    local last_kept_change_line=""
     local file_ended=false
     
     while IFS= read -r line || [[ -n "$line" ]]; do
+        # Handle Project Structure section: replace the ```text ... ``` block contents
+        if [[ "$line" == "## Project Structure" ]]; then
+            echo "$line" >> "$temp_file"
+            in_structure_section=true
+            continue
+        fi
+
+        # NOTE: Use single quotes so backticks are treated literally (avoid command substitution).
+        if [[ $in_structure_section == true ]] && [[ "$line" == '```text' ]]; then
+            echo "$line" >> "$temp_file"
+            # Insert computed structure (convert \n sequences to real newlines)
+            if [[ -n "$project_structure" ]]; then
+                printf "%b\n" "$project_structure" >> "$temp_file"
+            fi
+            in_structure_codeblock=true
+            continue
+        fi
+
+        if [[ $in_structure_codeblock == true ]]; then
+            # Skip existing codeblock contents until closing fence
+            if [[ "$line" == '```' ]]; then
+                echo "$line" >> "$temp_file"
+                in_structure_codeblock=false
+                in_structure_section=false
+            fi
+            continue
+        fi
+
         # Handle Active Technologies section
         if [[ "$line" == "## Active Technologies" ]]; then
             echo "$line" >> "$temp_file"
@@ -454,10 +492,13 @@ update_existing_agent_file() {
             in_changes_section=false
             continue
         elif [[ $in_changes_section == true ]] && [[ "$line" == "- "* ]]; then
-            # Keep only first 2 existing changes
+            # Keep only first 2 existing changes (and avoid adjacent duplicates)
             if [[ $existing_changes_count -lt 2 ]]; then
-                echo "$line" >> "$temp_file"
-                ((existing_changes_count++))
+                if [[ "$line" != "$last_kept_change_line" ]]; then
+                    echo "$line" >> "$temp_file"
+                    last_kept_change_line="$line"
+                    ((existing_changes_count++))
+                fi
             fi
             continue
         fi

@@ -1,0 +1,31 @@
+# macOS
+.DS_Store
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# env / secrets
+.env
+.env.*
+
+# IDE
+.vscode/
+.idea/
+
+# GAS / clasp
+.clasp.json
+gas/.clasp.json
+
+# Personal location history exports (DO NOT COMMIT)
+location-history.json
+tools/fixtures/location-history.json
+
+# Misc
+*.tmp
+*.swp
+
+
