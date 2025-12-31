@@ -37,14 +37,18 @@ function _resolveAppendHelpers() {
  * Export a daily GPX file to Drive output folder (idempotent: skip if exists).
  * @returns {{skipped:boolean,fileId?:string,fileName:string}}
  */
-function exportDailyGpxToDrive({ outputFolderId, date, points }) {
+function exportDailyGpxToDrive({ outputFolderId, date, points, breakDistanceMeters }) {
   const folder = getFolderById(outputFolderId);
   const fileName = `timeline-${date}.gpx`;
   if (fileExistsByName(folder, fileName)) {
     return { skipped: true, fileName };
   }
 
-  const xml = _resolveBuildGpxTrack()({ name: fileName.replace('.gpx', ''), points });
+  const xml = _resolveBuildGpxTrack()({
+    name: fileName.replace('.gpx', ''),
+    points,
+    breakDistanceMeters
+  });
   const file = folder.createFile(fileName, xml, MimeType.PLAIN_TEXT);
   return { skipped: false, fileId: file.getId(), fileName };
 }
@@ -53,7 +57,7 @@ function exportDailyGpxToDrive({ outputFolderId, date, points }) {
  * Append one day as a trkseg into a single GPX file in Drive (idempotent by marker).
  * @returns {{skipped:boolean,fileId:string,fileName:string}}
  */
-function appendDayGpxToDrive({ outputFolderId, outputFileName, date, points }) {
+function appendDayGpxToDrive({ outputFolderId, outputFileName, date, points, breakDistanceMeters }) {
   const folder = getFolderById(outputFolderId);
   const fileName = outputFileName || 'timeline-all.gpx';
   const { create, hasDay, buildSeg, append } = _resolveAppendHelpers();
@@ -69,7 +73,7 @@ function appendDayGpxToDrive({ outputFolderId, outputFileName, date, points }) {
     return { skipped: true, fileId: file.getId(), fileName };
   }
 
-  const seg = buildSeg({ date, points });
+  const seg = buildSeg({ date, points, breakDistanceMeters });
   const updated = append(existing, seg);
   file.setContent(updated);
   return { skipped: false, fileId: file.getId(), fileName };

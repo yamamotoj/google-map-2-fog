@@ -20,6 +20,43 @@ function buildTrkpts(points) {
     .join('');
 }
 
+function haversineMeters(a, b) {
+  const toRad = (d) => (d * Math.PI) / 180;
+  const R = 6371000;
+  const lat1 = toRad(Number(a.lat));
+  const lat2 = toRad(Number(b.lat));
+  const dLat = lat2 - lat1;
+  const dLng = toRad(Number(b.lng) - Number(a.lng));
+  const sinDLat = Math.sin(dLat / 2);
+  const sinDLng = Math.sin(dLng / 2);
+  const h = sinDLat * sinDLat + Math.cos(lat1) * Math.cos(lat2) * sinDLng * sinDLng;
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
+function splitPointsByDistance(points, breakDistanceMeters) {
+  const pts = Array.isArray(points) ? points : [];
+  const threshold = Number(breakDistanceMeters) || 0;
+  if (!(threshold > 0) || pts.length <= 1) return [pts];
+  const segs = [];
+  let cur = [];
+  for (const p of pts) {
+    if (cur.length === 0) {
+      cur.push(p);
+      continue;
+    }
+    const prev = cur[cur.length - 1];
+    const dist = haversineMeters(prev, p);
+    if (Number.isFinite(dist) && dist >= threshold) {
+      segs.push(cur);
+      cur = [p];
+    } else {
+      cur.push(p);
+    }
+  }
+  if (cur.length) segs.push(cur);
+  return segs;
+}
+
 function createEmptyGpx({ name } = {}) {
   const safeName = name ? escapeXml(name) : null;
   const nameNode = safeName ? `<name>${safeName}</name>` : '';
@@ -39,9 +76,10 @@ function gpxHasDay(xml, date) {
   return String(xml || '').includes(dayMarker(date));
 }
 
-function buildDayTrkseg({ date, points }) {
-  const trkpts = buildTrkpts(points);
-  return `${dayMarker(date)}<trkseg>${trkpts}</trkseg>`;
+function buildDayTrkseg({ date, points, breakDistanceMeters } = {}) {
+  const segs = splitPointsByDistance(points || [], breakDistanceMeters);
+  const trksegs = segs.map((seg) => `<trkseg>${buildTrkpts(seg)}</trkseg>`).join('');
+  return `${dayMarker(date)}${trksegs}`;
 }
 
 function appendTrksegToGpxXml(existingXml, trksegXml) {
@@ -60,7 +98,9 @@ if (typeof module !== 'undefined') {
     createEmptyGpx,
     gpxHasDay,
     buildDayTrkseg,
-    appendTrksegToGpxXml
+    appendTrksegToGpxXml,
+    splitPointsByDistance,
+    haversineMeters
   };
 }
 

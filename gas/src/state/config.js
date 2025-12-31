@@ -35,6 +35,13 @@ function parsePositiveInt(value, fallback) {
   return n;
 }
 
+function parsePositiveFloat(value, fallback) {
+  if (value == null || String(value).trim() === '') return fallback;
+  const n = Number.parseFloat(String(value));
+  if (!Number.isFinite(n) || n < 0) return fallback;
+  return n;
+}
+
 function loadConfig() {
   const store = getPropertyStore();
   const keys = _getScriptPropertyKeys();
@@ -54,7 +61,13 @@ function loadConfig() {
   );
 
   const outputMode = (store.getProperty(keys.OUTPUT_MODE) || '').trim() || 'daily';
-  const outputFileName = (store.getProperty(keys.OUTPUT_FILE_NAME) || '').trim() || 'timeline-all.gpx';
+  const outputFileNameRaw = (store.getProperty(keys.OUTPUT_FILE_NAME) || '').trim();
+  const outputFileName = outputFileNameRaw || null;
+
+  const gpxBreakDistanceMeters = parsePositiveInt(
+    store.getProperty(keys.GPX_BREAK_DISTANCE_METERS),
+    2000
+  );
 
   const maxRouteRequestsPerDay = parsePositiveInt(
     store.getProperty(keys.MAX_ROUTE_REQUESTS_PER_DAY),
@@ -68,6 +81,11 @@ function loadConfig() {
   const enableRouteModeAuto = (store.getProperty(keys.ENABLE_ROUTE_MODE_AUTO) || '').trim() === '1';
   const routeModeAutoFallback = (store.getProperty(keys.ROUTE_MODE_AUTO_FALLBACK) || '').trim() || 'driving';
 
+  const flightMinDistanceMeters = parsePositiveInt(store.getProperty(keys.FLIGHT_MIN_DISTANCE_METERS), 50000);
+  // No upper bound by default (international flights can be long). If set > 0, it will be used as an additional constraint.
+  const flightMaxDurationHours = parsePositiveFloat(store.getProperty(keys.FLIGHT_MAX_DURATION_HOURS), 0);
+  const flightMinSpeedKmh = parsePositiveInt(store.getProperty(keys.FLIGHT_MIN_SPEED_KMH), 200);
+
   const logSheetId = (store.getProperty(keys.LOG_SHEET_ID) || '').trim() || null;
   const startDate = (store.getProperty(keys.START_DATE) || '').trim() || null;
   const endDate = (store.getProperty(keys.END_DATE) || '').trim() || null;
@@ -78,6 +96,7 @@ function loadConfig() {
     outputFolderId,
     outputMode,
     outputFileName,
+    gpxBreakDistanceMeters,
     maxRouteRequestsPerDay,
     mapsApiKey,
     enableRouteEnrichment,
@@ -85,6 +104,9 @@ function loadConfig() {
     routeMinDistanceMeters,
     enableRouteModeAuto,
     routeModeAutoFallback,
+    flightMinDistanceMeters,
+    flightMaxDurationHours,
+    flightMinSpeedKmh,
     logSheetId,
     startDate,
     endDate
@@ -92,7 +114,7 @@ function loadConfig() {
 }
 
 if (typeof module !== 'undefined') {
-  module.exports = { loadConfig, getPropertyStore, parsePositiveInt, requireNonEmpty };
+  module.exports = { loadConfig, getPropertyStore, parsePositiveInt, parsePositiveFloat, requireNonEmpty };
 }
 
 

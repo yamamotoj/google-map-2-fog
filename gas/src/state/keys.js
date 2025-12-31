@@ -15,6 +15,7 @@ const SCRIPT_PROPERTY_KEYS = Object.freeze({
   OUTPUT_FOLDER_ID: 'OUTPUT_FOLDER_ID',
   OUTPUT_MODE: 'OUTPUT_MODE', // 'daily' (default) | 'single'
   OUTPUT_FILE_NAME: 'OUTPUT_FILE_NAME', // used when OUTPUT_MODE='single' (default: timeline-all.gpx)
+  GPX_BREAK_DISTANCE_METERS: 'GPX_BREAK_DISTANCE_METERS', // break trkseg if distance between points exceeds this (default: 2000)
   MAX_ROUTE_REQUESTS_PER_DAY: 'MAX_ROUTE_REQUESTS_PER_DAY',
   // Routes (US2)
   MAPS_API_KEY: 'MAPS_API_KEY',
@@ -23,6 +24,11 @@ const SCRIPT_PROPERTY_KEYS = Object.freeze({
   ROUTE_MIN_DISTANCE_METERS: 'ROUTE_MIN_DISTANCE_METERS', // default 200
   ENABLE_ROUTE_MODE_AUTO: 'ENABLE_ROUTE_MODE_AUTO', // '1' to enable
   ROUTE_MODE_AUTO_FALLBACK: 'ROUTE_MODE_AUTO_FALLBACK', // driving|walking|bicycling|transit (default driving)
+
+  // Heuristics
+  FLIGHT_MIN_DISTANCE_METERS: 'FLIGHT_MIN_DISTANCE_METERS', // default 50000
+  FLIGHT_MAX_DURATION_HOURS: 'FLIGHT_MAX_DURATION_HOURS', // default 0 (no limit)
+  FLIGHT_MIN_SPEED_KMH: 'FLIGHT_MIN_SPEED_KMH', // default 200
 
   // Run control
   LOG_SHEET_ID: 'LOG_SHEET_ID',

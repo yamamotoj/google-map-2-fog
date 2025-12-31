@@ -39,8 +39,14 @@
 
 - `LOCATION_HISTORY_FILE_ID`: Drive上の `location-history.json` のファイルID
 - `OUTPUT_FOLDER_ID`: 出力フォルダID
-- `OUTPUT_MODE`: 出力モード（未設定は `daily`。`single` にすると1つのGPXに追記）
-- `OUTPUT_FILE_NAME`: `OUTPUT_MODE=single` のときの出力ファイル名（未設定は `timeline-all.gpx`）
+- `OUTPUT_MODE`: 出力モード（未設定は `daily`。`single`=1つのGPXに追記、`yearly`=年ごとに1ファイルへ追記）
+- `OUTPUT_FILE_NAME`: `OUTPUT_MODE=single/yearly` のときの出力ファイル名
+  - `single`: 未設定なら `timeline-all.gpx`。実装上はファイル名に `START_DATE` が含まれていなければ自動で `-START_DATE` が付与されます
+  - `yearly`: 未設定なら `timeline.gpx` を基準にし、出力は **`timeline-YYYY-01-01.gpx`** 形式になります（年が変わるとファイルが切り替わります）。`OUTPUT_FILE_NAME` に `timeline-2010-01-01.gpx` のような日付入りを指定しても、テンプレとして扱われ `timeline-YYYY-01-01.gpx` になります
+- `GPX_BREAK_DISTANCE_METERS`: 連続点の距離がこの値（メートル）以上なら **`trkseg` を分割**して直線で結ばれないようにします（未設定は `2000`）
+- `FLIGHT_MIN_DISTANCE_METERS`: 飛行機っぽい区間の最小距離（m、未設定は `50000`）
+- `FLIGHT_MAX_DURATION_HOURS`: 飛行機っぽい区間の最大時間（h、**未設定は `0`（上限なし）**。海外フライト等を考慮して、基本は上限なし推奨）
+- `FLIGHT_MIN_SPEED_KMH`: 飛行機っぽい区間の最小平均速度（km/h、未設定は `200`）
 - `MAX_ROUTE_REQUESTS_PER_DAY`: 経路補完の日次上限（無料枠/予算に合わせる）
 - `START_DATE`: 初回に処理を開始する日付（`YYYY-MM-DD`、JST基準。US3のカーソル初期化に必須）
 

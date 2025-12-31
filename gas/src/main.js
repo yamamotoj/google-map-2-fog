@@ -17,6 +17,17 @@ function isTimeUp(stopAtMillis) {
   return millisNow() >= stopAtMillis;
 }
 
+function _resolveFileNameHelpers() {
+  const ensureStart = typeof ensureStartDateInFileName !== 'undefined'
+    ? ensureStartDateInFileName
+    : (typeof require !== 'undefined' ? require('./gpx/fileName').ensureStartDateInFileName : null);
+  const buildYearly = typeof buildYearlyOutputFileName !== 'undefined'
+    ? buildYearlyOutputFileName
+    : (typeof require !== 'undefined' ? require('./gpx/fileName').buildYearlyOutputFileName : null);
+  if (!ensureStart || !buildYearly) throw new Error('fileName helpers are not available');
+  return { ensureStart, buildYearly };
+}
+
 function _buildDayPointsProvider({ config, file }) {
   // Read once per execution; reuse for multiple days.
   const text = readDriveTextFile(file);
@@ -89,18 +100,28 @@ function processOneDay({ config, logger, run, jobState, stopAtMillis, getDayPoin
     }
 
     const mode = String(config.outputMode || 'daily').toLowerCase();
-    const result = mode === 'single'
-      ? appendDayGpxToDrive({
-          outputFolderId: config.outputFolderId,
-          outputFileName: config.outputFileName,
-          date: targetDate,
-          points: exportPoints
-        })
-      : exportDailyGpxToDrive({
-          outputFolderId: config.outputFolderId,
-          date: targetDate,
-          points: exportPoints
-        });
+    const { ensureStart, buildYearly } = _resolveFileNameHelpers();
+    const year = String(targetDate).slice(0, 4);
+
+    const outputFileName = mode === 'yearly'
+      ? buildYearly(config.outputFileName, year) // timeline-YYYY-01-01.gpx
+      : ensureStart((config.outputFileName || 'timeline-all.gpx'), config.startDate);
+
+    const result =
+      mode === 'single' || mode === 'yearly'
+        ? appendDayGpxToDrive({
+            outputFolderId: config.outputFolderId,
+            outputFileName,
+            date: targetDate,
+            points: exportPoints,
+            breakDistanceMeters: config.gpxBreakDistanceMeters
+          })
+        : exportDailyGpxToDrive({
+            outputFolderId: config.outputFolderId,
+            date: targetDate,
+            points: exportPoints,
+            breakDistanceMeters: config.gpxBreakDistanceMeters
+          });
     if (!result.skipped) {
       run.exportedFiles.push({ date: targetDate, fileId: result.fileId });
     }

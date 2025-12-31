@@ -61,7 +61,16 @@ test('enrichPointsWithRoutes: 予算があれば中間点を挿入できる（HT
 
   const res = enrichPointsWithRoutes({
     points: pts,
-    config: { enableRouteEnrichment: true, mapsApiKey: 'dummy', routeTravelMode: 'driving', routeMinDistanceMeters: 0 },
+    config: {
+      enableRouteEnrichment: true,
+      mapsApiKey: 'dummy',
+      routeTravelMode: 'driving',
+      routeMinDistanceMeters: 0,
+      // flight heuristics off
+      flightMinDistanceMeters: 0,
+      flightMaxDurationHours: 0,
+      flightMinSpeedKmh: 0
+    },
     jobState,
     logger: { warn: () => {}, info: () => {} }
   });
@@ -69,6 +78,47 @@ test('enrichPointsWithRoutes: 予算があれば中間点を挿入できる（HT
   // original 2 points + 1 middle point (from decoded polyline)
   assert.equal(res.points.length, 3);
   assert.equal(jobState.budget.routeRequestsUsedToday, 1);
+});
+
+test('enrichPointsWithRoutes: 飛行機っぽい区間はルート補完しない（直線化/車ルート化を防ぐ）', () => {
+  let calls = 0;
+  global.fetchDirectionsRoute = () => {
+    calls++;
+    return { polyline: '_p~iF~ps|U_ulLnnqC_mqNvxq`@' };
+  };
+
+  const jobState = {
+    budget: {
+      maxRouteRequestsPerDay: 10,
+      routeRequestsUsedToday: 0,
+      lastBudgetResetDate: '2010-12-20'
+    }
+  };
+
+  // ~111km in 30min => ~222km/h => flight-like
+  const pts = [
+    { lat: 0, lng: 0, time: '2010-12-20T00:00:00.000Z' },
+    { lat: 1, lng: 0, time: '2010-12-20T00:30:00.000Z' }
+  ];
+
+  const res = enrichPointsWithRoutes({
+    points: pts,
+    config: {
+      enableRouteEnrichment: true,
+      mapsApiKey: 'dummy',
+      routeTravelMode: 'driving',
+      routeMinDistanceMeters: 0,
+      flightMinDistanceMeters: 50000,
+      flightMaxDurationHours: 3,
+      flightMinSpeedKmh: 200
+    },
+    jobState,
+    logger: { warn: () => {}, info: () => {} }
+  });
+
+  assert.equal(calls, 0);
+  assert.equal(jobState.budget.routeRequestsUsedToday, 0);
+  assert.equal(res.points.length, 2);
 });
 
 test('inferTravelMode: 速度に応じてwalking/bicycling/drivingを推定できる', () => {
@@ -128,7 +178,17 @@ test('enrichPointsWithRoutes: 予算切れなら停止フラグを返す（点�
 
   const res = enrichPointsWithRoutes({
     points: pts,
-    config: { enableRouteEnrichment: true, mapsApiKey: 'dummy', routeTravelMode: 'driving', routeMinDistanceMeters: 0, enableRouteModeAuto: false },
+    config: {
+      enableRouteEnrichment: true,
+      mapsApiKey: 'dummy',
+      routeTravelMode: 'driving',
+      routeMinDistanceMeters: 0,
+      enableRouteModeAuto: false,
+      // flight heuristics off
+      flightMinDistanceMeters: 0,
+      flightMaxDurationHours: 0,
+      flightMinSpeedKmh: 0
+    },
     jobState,
     logger: { warn: () => {}, info: () => {} }
   });

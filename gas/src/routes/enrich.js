@@ -38,6 +38,29 @@ function inferTravelMode({ origin, destination, fallbackMode = 'driving', allowT
   return 'driving';
 }
 
+function isLikelyFlight({ origin, destination, config }) {
+  const minDist = Math.max(0, Number(config?.flightMinDistanceMeters) || 0);
+  const minSpeedKmh = Math.max(0, Number(config?.flightMinSpeedKmh) || 0);
+  const maxHours = Math.max(0, Number(config?.flightMaxDurationHours) || 0); // optional (0 = no limit)
+  if (!(minDist > 0) || !(minSpeedKmh > 0)) return false;
+
+  const t1 = origin?.time ? Date.parse(origin.time) : NaN;
+  const t2 = destination?.time ? Date.parse(destination.time) : NaN;
+  if (!Number.isFinite(t1) || !Number.isFinite(t2)) return false;
+
+  const dtSec = Math.max(0, (t2 - t1) / 1000);
+  if (!(dtSec > 0)) return false;
+
+  const dist = haversineMeters(origin, destination);
+  if (!Number.isFinite(dist) || dist < minDist) return false;
+
+  const dtHours = dtSec / 3600;
+  if (maxHours > 0 && dtHours > maxHours) return false;
+
+  const speedKmh = (dist / 1000) / dtHours;
+  return Number.isFinite(speedKmh) && speedKmh >= minSpeedKmh;
+}
+
 function _resolveDecodePolyline() {
   if (typeof decodePolyline !== 'undefined') return decodePolyline;
   if (typeof require !== 'undefined') return require('./polyline').decodePolyline;
@@ -123,6 +146,16 @@ function enrichPointsWithRoutes({ points, config, jobState, logger }) {
       continue;
     }
 
+    // Flight-like: do NOT enrich with driving routes; keep raw points so GPX splitting can cut the segment.
+    if (isLikelyFlight({ origin: a, destination: b, config })) {
+      logger?.info?.('flight-like jump detected; skip route enrichment for pair', {
+        origin: { lat: a.lat, lng: a.lng, time: a.time || null },
+        destination: { lat: b.lat, lng: b.lng, time: b.time || null }
+      });
+      out.push(b);
+      continue;
+    }
+
     if (!canConsume(jobState)) {
       stats.skippedBudget++;
       stoppedDueToBudget = true;
@@ -191,7 +224,7 @@ function enrichPointsWithRoutes({ points, config, jobState, logger }) {
 globalThis.enrichPointsWithRoutes = enrichPointsWithRoutes;
 
 if (typeof module !== 'undefined') {
-  module.exports = { enrichPointsWithRoutes, haversineMeters, inferTravelMode };
+  module.exports = { enrichPointsWithRoutes, haversineMeters, inferTravelMode, isLikelyFlight };
 }
 
 
