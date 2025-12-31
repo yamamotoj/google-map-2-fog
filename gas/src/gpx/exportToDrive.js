@@ -24,19 +24,47 @@ function findFileByName(folder, fileName) {
   return files.hasNext() ? files.next() : null;
 }
 
-function _resolveFileNameHelpers() {
+function _splitExt(name) {
+  const base = (name || '').trim();
+  const m = base.match(/^(.*?)(\.gpx)?$/i);
+  const head = m ? m[1] : base;
+  const ext = m && m[2] ? m[2] : '.gpx';
+  return { head, ext };
+}
+
+function _yearlyPrefixFromTemplate(fileNameOrNull) {
+  const base = (fileNameOrNull || '').trim() || 'timeline.gpx';
+  const { head } = _splitExt(base);
+  return head.replace(/-\d{4}-\d{2}-\d{2}$/u, '');
+}
+
+function _buildYearlyFromTemplate(fileNameOrNull, year, startDateOrNull) {
+  const y = String(year || '').trim();
+  const base = (fileNameOrNull || '').trim() || 'timeline.gpx';
+  if (!y) return base;
+  const { ext } = _splitExt(base);
+  const prefix = _yearlyPrefixFromTemplate(base);
+  const startDate = String(startDateOrNull || '').trim();
+  const yyyy0101 = `${y}-01-01`;
+  const suffixDate = startDate && startDate.startsWith(`${y}-`) ? startDate : yyyy0101;
+  return `${prefix}-${suffixDate}${ext}`;
+}
+
+function _resolveFileNameHelpersForExportToDrive() {
   const getPrefix = typeof getYearlyPrefix !== 'undefined'
     ? getYearlyPrefix
     : (typeof require !== 'undefined' ? require('./fileName').getYearlyPrefix : null);
   const buildYearly = typeof buildYearlyOutputFileName !== 'undefined'
     ? buildYearlyOutputFileName
     : (typeof require !== 'undefined' ? require('./fileName').buildYearlyOutputFileName : null);
-  if (!getPrefix || !buildYearly) throw new Error('fileName helpers are not available');
-  return { getPrefix, buildYearly };
+  // Be resilient in Apps Script: if a helper is missing or not a function, use local implementation.
+  const safeGetPrefix = typeof getPrefix === 'function' ? getPrefix : _yearlyPrefixFromTemplate;
+  const safeBuildYearly = typeof buildYearly === 'function' ? buildYearly : _buildYearlyFromTemplate;
+  return { getPrefix: safeGetPrefix, buildYearly: safeBuildYearly };
 }
 
 function findExistingYearlyFileName({ folder, outputFileNameTemplate, year }) {
-  const { getPrefix } = _resolveFileNameHelpers();
+  const { getPrefix } = _resolveFileNameHelpersForExportToDrive();
   const prefix = getPrefix(outputFileNameTemplate || 'timeline.gpx');
   const y = String(year || '').trim();
   if (!y) return null;
@@ -102,7 +130,7 @@ function appendDayGpxToDrive({ outputFolderId, outputFileName, date, points, bre
   const folder = getFolderById(outputFolderId);
   const mode = String(outputMode || 'single').toLowerCase();
   const year = String(date || '').slice(0, 4);
-  const { buildYearly } = _resolveFileNameHelpers();
+  const { buildYearly } = _resolveFileNameHelpersForExportToDrive();
 
   const fileName = mode === 'yearly'
     ? (findExistingYearlyFileName({ folder, outputFileNameTemplate: outputFileName, year }) ||
